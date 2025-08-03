@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  PROJECT_ID: your-google-cloud-project-id  # Replace with your project ID
+  PROJECT_ID: dirly-466300
   SERVICE_NAME: prompttovideo
   REGION: us-central1
 
@@ -16,14 +16,15 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+    
+    - name: Google Auth
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
     
     - name: Set up Cloud SDK
-      uses: google-github-actions/setup-gcloud@v1
-      with:
-        project_id: ${{ env.PROJECT_ID }}
-        service_account_key: ${{ secrets.GCP_SA_KEY }}
-        export_default_credentials: true
+      uses: google-github-actions/setup-gcloud@v2
     
     - name: Authorize Docker push
       run: gcloud auth configure-docker
@@ -44,8 +45,10 @@ jobs:
           --cpu 2 \
           --timeout 300 \
           --concurrency 80 \
-          --max-instances 10 \
-          --set-env-vars FLASK_ENV=production,SECRET_KEY=${{ secrets.SECRET_KEY }},VEO_API_KEY=${{ secrets.VEO_API_KEY }},STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }},GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+          --max-instances 5 \
+          --set-env-vars DATABASE_URL=postgresql://prompttovideo:PromptToVideo2024!@/prompttovideo?host=/cloudsql/${{ env.PROJECT_ID }}:us-central1:prompttovideo-db,GCS_BUCKET_NAME=prompt-veo-videos,VEO_MOCK_MODE=false,FLASK_ENV=production,GOOGLE_APPLICATION_CREDENTIALS=/app/veo.json \
+          --add-cloudsql-instances ${{ env.PROJECT_ID }}:us-central1:prompttovideo-db \
+          --service-account prompttovideo-runner@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
     
     - name: Show Service URL
       run: |
