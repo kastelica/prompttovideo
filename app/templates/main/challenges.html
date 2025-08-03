@@ -1,0 +1,568 @@
+{% extends "base.html" %}
+
+{% block title %}Community Challenges - PromptToVideo{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div class="text-center">
+                <h1 class="text-3xl font-bold text-gray-900 mb-4">Community Challenges</h1>
+                <p class="text-lg text-gray-600 mb-6">
+                    Participate in weekly themed video challenges, showcase your creativity, and win credits!
+                </p>
+                
+                <!-- Challenge Status Filters -->
+                <div class="flex justify-center space-x-2 mb-6">
+                    <button onclick="setStatusFilter('all')" class="status-filter-btn active" data-status="all">All</button>
+                    <button onclick="setStatusFilter('active')" class="status-filter-btn" data-status="active">Active</button>
+                    <button onclick="setStatusFilter('voting')" class="status-filter-btn" data-status="voting">Voting</button>
+                    <button onclick="setStatusFilter('completed')" class="status-filter-btn" data-status="completed">Completed</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Loading Spinner -->
+        <div id="loadingSpinner" class="text-center py-12">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p class="text-gray-600">Loading challenges...</p>
+        </div>
+        
+        <!-- Challenges Grid -->
+        <div id="challengesContainer" class="hidden">
+            <div id="challengesList" class="space-y-8">
+                <!-- Challenges will be populated here -->
+            </div>
+            
+            <!-- Load More Button -->
+            <div class="text-center mt-8">
+                <button id="loadMoreBtn" onclick="loadMoreChallenges()" class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-secondary hidden">
+                    Load More Challenges
+                </button>
+            </div>
+        </div>
+        
+        <!-- No Challenges -->
+        <div id="noChallenges" class="text-center py-12 hidden">
+            <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No challenges found</h3>
+            <p class="text-gray-600">Check back soon for new community challenges!</p>
+        </div>
+    </div>
+</div>
+
+<!-- Challenge Detail Modal -->
+<div id="challengeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-start mb-6">
+                <div class="flex-1">
+                    <h2 id="modalTitle" class="text-2xl font-bold text-gray-900 mb-2"></h2>
+                    <div id="modalMeta" class="flex items-center space-x-4 text-sm text-gray-600">
+                        <!-- Meta info will be populated -->
+                    </div>
+                </div>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Challenge Content -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Left Side: Challenge Info -->
+                <div>
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Description</h3>
+                        <p id="modalDescription" class="text-gray-700"></p>
+                    </div>
+                    
+                    <div class="mb-6" id="guidelinesSection">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Guidelines</h3>
+                        <p id="modalGuidelines" class="text-gray-700"></p>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Prizes</h3>
+                        <div id="modalPrizes" class="space-y-2 text-sm">
+                            <!-- Prizes will be populated -->
+                        </div>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <div id="submitSection" class="hidden">
+                        <button onclick="showSubmissionForm()" class="w-full bg-primary text-white py-3 rounded-lg hover:bg-secondary font-medium">
+                            Submit Your Video
+                        </button>
+                    </div>
+                    
+                    <!-- Voting Section -->
+                    <div id="votingSection" class="hidden">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h3 class="text-lg font-semibold text-blue-900 mb-2">Voting Phase</h3>
+                            <p class="text-blue-700 text-sm">Vote for your favorite submissions below!</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Side: Submissions -->
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Submissions</h3>
+                        <span id="submissionCount" class="text-sm text-gray-600"></span>
+                    </div>
+                    
+                    <div id="modalSubmissions" class="space-y-4 max-h-96 overflow-y-auto">
+                        <!-- Submissions will be populated -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Submission Form Modal -->
+<div id="submissionModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+    <div class="bg-white rounded-lg max-w-2xl w-full">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-gray-900">Submit Your Video</h2>
+                <button onclick="closeSubmissionModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <form id="submissionForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Select Video</label>
+                    <select id="videoSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required>
+                        <option value="">Choose a video...</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Submission Title</label>
+                    <input type="text" id="submissionTitle" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" placeholder="Give your submission a catchy title">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                    <textarea id="submissionDescription" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" placeholder="Describe your creative process or inspiration..."></textarea>
+                </div>
+                
+                <div class="flex space-x-3 pt-4">
+                    <button type="button" onclick="closeSubmissionModal()" class="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-secondary">
+                        Submit
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.status-filter-btn {
+    @apply px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary;
+}
+
+.status-filter-btn.active {
+    @apply bg-primary text-white hover:bg-secondary;
+}
+
+.challenge-status-badge {
+    @apply px-2 py-1 text-xs font-medium rounded-full;
+}
+
+.status-active {
+    @apply bg-green-100 text-green-800;
+}
+
+.status-voting {
+    @apply bg-blue-100 text-blue-800;
+}
+
+.status-completed {
+    @apply bg-gray-100 text-gray-800;
+}
+
+.status-upcoming {
+    @apply bg-yellow-100 text-yellow-800;
+}
+</style>
+
+<script>
+let currentStatus = 'all';
+let currentPage = 1;
+let currentChallengeId = null;
+let userVideos = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadChallenges();
+    loadUserVideos();
+});
+
+function setStatusFilter(status) {
+    currentStatus = status;
+    currentPage = 1;
+    
+    // Update button states
+    document.querySelectorAll('.status-filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[data-status="${status}"]`).classList.add('active');
+    
+    loadChallenges();
+}
+
+async function loadChallenges() {
+    showLoading();
+    
+    try {
+        const response = await fetch(`/api/v1/challenges?status=${currentStatus}&page=${currentPage}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            displayChallenges(data.challenges, currentPage === 1);
+            
+            // Update load more button
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            if (data.pagination.page < data.pagination.pages) {
+                loadMoreBtn.classList.remove('hidden');
+            } else {
+                loadMoreBtn.classList.add('hidden');
+            }
+        } else {
+            showNoChallenges();
+        }
+    } catch (error) {
+        console.error('Error loading challenges:', error);
+        showNoChallenges();
+    }
+}
+
+function showLoading() {
+    document.getElementById('loadingSpinner').classList.remove('hidden');
+    document.getElementById('challengesContainer').classList.add('hidden');
+    document.getElementById('noChallenges').classList.add('hidden');
+}
+
+function hideLoading() {
+    document.getElementById('loadingSpinner').classList.add('hidden');
+    document.getElementById('challengesContainer').classList.remove('hidden');
+}
+
+function showNoChallenges() {
+    document.getElementById('loadingSpinner').classList.add('hidden');
+    document.getElementById('challengesContainer').classList.add('hidden');
+    document.getElementById('noChallenges').classList.remove('hidden');
+}
+
+function displayChallenges(challenges, clearExisting = true) {
+    hideLoading();
+    
+    if (challenges.length === 0 && clearExisting) {
+        showNoChallenges();
+        return;
+    }
+    
+    const container = document.getElementById('challengesList');
+    
+    if (clearExisting) {
+        container.innerHTML = '';
+    }
+    
+    const html = challenges.map(challenge => `
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex-1">
+                        <div class="flex items-center mb-2">
+                            <h2 class="text-xl font-bold text-gray-900 mr-3">${challenge.title}</h2>
+                            <span class="challenge-status-badge status-${challenge.status}">${challenge.status}</span>
+                        </div>
+                        <p class="text-gray-600 mb-3">${challenge.description}</p>
+                        <div class="flex items-center space-x-4 text-sm text-gray-500">
+                            <span>Theme: ${challenge.theme}</span>
+                            <span>${challenge.submission_count} submissions</span>
+                            <span>${challenge.total_votes} votes</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-600">
+                        ${challenge.status === 'active' ? 
+                            `Ends: ${new Date(challenge.end_date).toLocaleDateString()}` :
+                            challenge.status === 'voting' ?
+                            `Voting ends: ${new Date(challenge.voting_end_date).toLocaleDateString()}` :
+                            `Started: ${new Date(challenge.start_date).toLocaleDateString()}`
+                        }
+                    </div>
+                    <button onclick="openChallengeModal(${challenge.id})" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-secondary">
+                        View Details
+                    </button>
+                </div>
+                
+                <!-- Top Submissions Preview -->
+                ${challenge.submissions && challenge.submissions.length > 0 ? `
+                    <div class="mt-4 pt-4 border-t border-gray-200">
+                        <h3 class="text-sm font-medium text-gray-900 mb-3">Top Submissions</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            ${challenge.submissions.slice(0, 4).map(submission => `
+                                <div class="relative aspect-video bg-gray-200 rounded overflow-hidden">
+                                    ${submission.video.thumbnail_url ? 
+                                        `<img src="${submission.video.thumbnail_url}" alt="${submission.title}" class="w-full h-full object-cover">` :
+                                        `<div class="flex items-center justify-center h-full text-gray-400">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                            </svg>
+                                        </div>`
+                                    }
+                                    <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white p-1">
+                                        <div class="text-xs truncate">${submission.title || submission.video.title}</div>
+                                        <div class="text-xs text-gray-300">${submission.vote_count} votes</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `).join('');
+    
+    container.innerHTML += html;
+}
+
+async function loadMoreChallenges() {
+    currentPage++;
+    await loadChallenges();
+}
+
+async function openChallengeModal(challengeId) {
+    currentChallengeId = challengeId;
+    
+    try {
+        const response = await fetch(`/api/v1/challenges/${challengeId}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            }
+        });
+        
+        if (response.ok) {
+            const challenge = await response.json();
+            displayChallengeModal(challenge);
+        }
+    } catch (error) {
+        console.error('Error loading challenge details:', error);
+    }
+}
+
+function displayChallengeModal(challenge) {
+    document.getElementById('modalTitle').textContent = challenge.title;
+    document.getElementById('modalDescription').textContent = challenge.description;
+    
+    // Meta info
+    const metaHtml = `
+        <span class="challenge-status-badge status-${challenge.status}">${challenge.status}</span>
+        <span>Theme: ${challenge.theme}</span>
+        <span>${challenge.submission_count} submissions</span>
+        <span>${challenge.total_votes} votes</span>
+    `;
+    document.getElementById('modalMeta').innerHTML = metaHtml;
+    
+    // Guidelines
+    if (challenge.prompt_guidelines) {
+        document.getElementById('modalGuidelines').textContent = challenge.prompt_guidelines;
+    } else {
+        document.getElementById('guidelinesSection').classList.add('hidden');
+    }
+    
+    // Prizes
+    const prizesHtml = `
+        <div class="flex justify-between"><span>🥇 First Place:</span><span>${challenge.credit_prize_first} credits</span></div>
+        <div class="flex justify-between"><span>🥈 Second Place:</span><span>${challenge.credit_prize_second} credits</span></div>
+        <div class="flex justify-between"><span>🥉 Third Place:</span><span>${challenge.credit_prize_third} credits</span></div>
+    `;
+    document.getElementById('modalPrizes').innerHTML = prizesHtml;
+    
+    // Show appropriate sections
+    document.getElementById('submitSection').classList.add('hidden');
+    document.getElementById('votingSection').classList.add('hidden');
+    
+    if (challenge.status === 'active') {
+        document.getElementById('submitSection').classList.remove('hidden');
+    } else if (challenge.status === 'voting') {
+        document.getElementById('votingSection').classList.remove('hidden');
+    }
+    
+    // Submissions
+    displaySubmissions(challenge.submissions || []);
+    
+    document.getElementById('challengeModal').classList.remove('hidden');
+}
+
+function displaySubmissions(submissions) {
+    document.getElementById('submissionCount').textContent = `${submissions.length} submissions`;
+    
+    if (submissions.length === 0) {
+        document.getElementById('modalSubmissions').innerHTML = '<p class="text-gray-500 text-center py-4">No submissions yet.</p>';
+        return;
+    }
+    
+    const html = submissions.map((submission, index) => `
+        <div class="border border-gray-200 rounded-lg p-4">
+            <div class="flex items-start space-x-3">
+                <div class="w-16 h-16 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+                    ${submission.video.thumbnail_url ? 
+                        `<img src="${submission.video.thumbnail_url}" alt="${submission.title}" class="w-full h-full object-cover">` :
+                        `<div class="flex items-center justify-center h-full text-gray-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>`
+                    }
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center justify-between mb-1">
+                        <h4 class="font-medium text-gray-900">${submission.title || submission.video.title}</h4>
+                        ${submission.rank && submission.rank <= 3 ? `
+                            <span class="text-lg">${submission.rank === 1 ? '🥇' : submission.rank === 2 ? '🥈' : '🥉'}</span>
+                        ` : ''}
+                    </div>
+                    <p class="text-sm text-gray-600 mb-2">by ${submission.user.username || submission.user.email}</p>
+                    ${submission.description ? `<p class="text-sm text-gray-700 mb-2">${submission.description}</p>` : ''}
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500">${submission.vote_count} votes</span>
+                        <div class="flex space-x-2">
+                            <button onclick="watchSubmission(${submission.video.id})" class="text-primary hover:text-secondary text-sm">
+                                Watch
+                            </button>
+                            ${currentChallengeStatus === 'voting' ? `
+                                <button onclick="voteForSubmission(${submission.id})" class="bg-primary text-white px-3 py-1 rounded text-sm hover:bg-secondary">
+                                    Vote
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+    
+    document.getElementById('modalSubmissions').innerHTML = html;
+}
+
+function closeModal() {
+    document.getElementById('challengeModal').classList.add('hidden');
+}
+
+async function loadUserVideos() {
+    try {
+        const response = await fetch('/api/v1/videos?status=completed&public=true', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            userVideos = data.videos || [];
+        }
+    } catch (error) {
+        console.error('Error loading user videos:', error);
+    }
+}
+
+function showSubmissionForm() {
+    // Populate video select
+    const videoSelect = document.getElementById('videoSelect');
+    videoSelect.innerHTML = '<option value="">Choose a video...</option>' +
+        userVideos.map(video => `<option value="${video.id}">${video.title || video.prompt.slice(0, 50)}</option>`).join('');
+    
+    document.getElementById('submissionModal').classList.remove('hidden');
+}
+
+function closeSubmissionModal() {
+    document.getElementById('submissionModal').classList.add('hidden');
+    document.getElementById('submissionForm').reset();
+}
+
+document.getElementById('submissionForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        video_id: parseInt(document.getElementById('videoSelect').value),
+        title: document.getElementById('submissionTitle').value,
+        description: document.getElementById('submissionDescription').value
+    };
+    
+    try {
+        const response = await fetch(`/api/v1/challenges/${currentChallengeId}/submit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        if (response.ok) {
+            closeSubmissionModal();
+            // Reload challenge details
+            openChallengeModal(currentChallengeId);
+            alert('Submission successful!');
+        } else {
+            const error = await response.json();
+            alert('Error: ' + error.error);
+        }
+    } catch (error) {
+        console.error('Error submitting to challenge:', error);
+        alert('Error submitting to challenge');
+    }
+});
+
+async function voteForSubmission(submissionId) {
+    try {
+        const response = await fetch(`/api/v1/challenges/${currentChallengeId}/vote`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            },
+            body: JSON.stringify({ submission_id: submissionId })
+        });
+        
+        if (response.ok) {
+            // Reload challenge details to update vote counts
+            openChallengeModal(currentChallengeId);
+            alert('Vote recorded!');
+        } else {
+            const error = await response.json();
+            alert('Error: ' + error.error);
+        }
+    } catch (error) {
+        console.error('Error voting:', error);
+        alert('Error recording vote');
+    }
+}
+
+function watchSubmission(videoId) {
+    window.open(`/watch/${videoId}`, '_blank');
+}
+</script>
+{% endblock %}

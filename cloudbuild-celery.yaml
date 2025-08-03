@@ -1,0 +1,44 @@
+steps:
+  # Build the Celery worker container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-f', 'Dockerfile.celery', '-t', 'gcr.io/$PROJECT_ID/celery-worker:latest', '.']
+  
+  # Push the image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/celery-worker:latest']
+  
+  # Deploy Celery worker to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'celery-worker'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/celery-worker:latest'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--no-allow-unauthenticated'
+      - '--memory'
+      - '2Gi'
+      - '--cpu'
+      - '2'
+      - '--timeout'
+      - '3600'
+      - '--concurrency'
+      - '1'
+      - '--max-instances'
+      - '10'
+      - '--min-instances'
+      - '1'
+      - '--set-env-vars'
+      - 'FLASK_ENV=production,DATABASE_URL=postgresql://prompttovideo:PromptToVideo2024!@/prompttovideo?host=/cloudsql/$PROJECT_ID:us-central1:prompttovideo-db,GCS_BUCKET_NAME=prompt-veo-videos,GOOGLE_CLOUD_PROJECT_ID=$PROJECT_ID,VEO_MOCK_MODE=false,DAILY_FREE_CREDITS=3,CREDIT_COST_FREE=1,CREDIT_COST_PREMIUM=3,CELERY_WORKER_CONCURRENCY=4'
+      - '--add-cloudsql-instances'
+      - '$PROJECT_ID:us-central1:prompttovideo-db'
+      - '--service-account'
+      - '1032601070049-compute@developer.gserviceaccount.com'
+
+images:
+  - 'gcr.io/$PROJECT_ID/celery-worker:latest' 

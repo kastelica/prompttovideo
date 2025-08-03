@@ -1,0 +1,1485 @@
+{% extends "base.html" %}
+
+{% block title %}{{ video.get_seo_title() }} - PromptToVideo{% endblock %}
+
+{% block meta %}
+<meta name="description" content="{{ video.get_seo_description() }}">
+<meta name="keywords" content="{{ video.get_seo_tags()|join(', ') }}, AI video, video generation">
+<meta property="og:title" content="{{ video.get_seo_title() }}">
+<meta property="og:description" content="{{ video.get_seo_description() }}">
+<meta property="og:type" content="video">
+<meta property="og:url" content="{{ request.url }}">
+{% if video.thumbnail_url %}
+<meta property="og:image" content="{{ video.thumbnail_url }}">
+{% endif %}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ video.get_seo_title() }}">
+<meta name="twitter:description" content="{{ video.get_seo_description() }}">
+{% if video.thumbnail_url %}
+<meta name="twitter:image" content="{{ video.thumbnail_url }}">
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 dark:bg-dark-900 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Video Player -->
+        <div class="bg-white dark:bg-dark-800 rounded-lg shadow-lg overflow-hidden mb-8">
+            {% if video.status == 'completed' %}
+            <div class="relative">
+                <video 
+                    id="videoPlayer"
+                    class="w-full h-auto"
+                    controls
+                    preload="metadata"
+                    poster="{{ video.thumbnail_url or '' }}"
+                    autoplay
+                >
+                    <source src="{{ video.gcs_signed_url }}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            {% else %}
+            <div class="aspect-video bg-gray-200 dark:bg-dark-700 flex items-center justify-center">
+                <div class="text-center">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                    <p class="text-gray-600 dark:text-gray-400">
+                        {% if video.status == 'processing' %}
+                        Video is being processed...
+                        {% elif video.status == 'pending' %}
+                        Video generation is queued...
+                        {% else %}
+                        Video is not available
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Video Info - Clean Redesign -->
+        <div class="bg-white dark:bg-dark-800 rounded-lg shadow-lg mb-8">
+            <!-- Header Section -->
+            <div class="p-6 border-b border-gray-100 dark:border-dark-700">
+                <div class="flex items-start justify-between">
+                    <!-- Title and Stats -->
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2" id="videoTitle">{{ video.get_seo_title() }}</h1>
+                        <div class="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                            <span id="videoViews">{{ video.views }} views</span>
+                            <span>•</span>
+                            <span>{{ video.created_at.strftime('%B %d, %Y') }}</span>
+                            <span>•</span>
+                            <span>{{ video.quality }}</span>
+                            {% if video.duration %}
+                            <span>•</span>
+                            <span>{{ video.duration }}s</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex items-center space-x-2 ml-4">
+                        <!-- Edit Button (for video owner) -->
+                        <div id="editButtonContainer" class="hidden">
+                            <button 
+                                onclick="openEditModal()"
+                                class="bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 px-3 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-600 transition-colors flex items-center text-sm"
+                            >
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                                Edit
+                            </button>
+                        </div>
+                        
+                        <!-- Share Button -->
+                        <button 
+                            onclick="toggleShareMenu()"
+                            class="bg-blue-500 text-white px-3 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center text-sm"
+                        >
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"/>
+                            </svg>
+                            Share
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Share Menu -->
+            <div id="shareMenu" class="hidden w-96 bg-white dark:bg-dark-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-dark-700">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Share this video</h3>
+                        <button onclick="hideShareMenu()" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-dark-700">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Video Preview -->
+                    <div class="mb-4 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-16 h-12 bg-gray-200 dark:bg-dark-600 rounded overflow-hidden flex-shrink-0">
+                                {% if video.thumbnail_url %}
+                                <img src="{{ video.thumbnail_url }}" alt="Video thumbnail" class="w-full h-full object-cover">
+                                {% else %}
+                                <div class="w-full h-full flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                    </svg>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ video.prompt[:60] }}{% if video.prompt|length > 60 %}...{% endif %}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ video.quality }} • {{ video.duration or 8 }}s</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Copy Link -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">Share Link</label>
+                        <div class="relative">
+                            <input 
+                                type="text" 
+                                id="shareUrl" 
+                                value="{{ video.get_share_url() }}" 
+                                class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 dark:bg-dark-700 text-gray-900 dark:text-gray-200"
+                                readonly
+                            >
+                            <button 
+                                onclick="copyShareUrl()"
+                                class="absolute right-2 top-1/2 transform -translate-y-1/2 px-3 py-1 text-xs bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-colors duration-200 flex items-center"
+                            >
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                </svg>
+                                Copy
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Embed Code -->
+                    {% if video.embed_enabled %}
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">Embed Code</label>
+                        <div class="relative">
+                            <textarea 
+                                id="embedCode" 
+                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 text-sm resize-none"
+                                rows="3"
+                                readonly
+                            >{{ video.get_embed_code() }}</textarea>
+                            <button 
+                                onclick="copyEmbedCode()"
+                                class="absolute right-2 top-2 px-3 py-1 text-xs bg-green-500 text-white hover:bg-green-600 rounded-lg transition-colors duration-200 flex items-center"
+                            >
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                </svg>
+                                Copy
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Social Share -->
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">Share on Social</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <a 
+                                href="https://twitter.com/intent/tweet?text={{ video.get_seo_title()|urlencode }}&url={{ video.get_share_url()|urlencode }}"
+                                target="_blank"
+                                class="flex items-center justify-center px-4 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors duration-200"
+                            >
+                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                                </svg>
+                                Twitter
+                            </a>
+                            <a 
+                                href="https://www.facebook.com/sharer/sharer.php?u={{ video.get_share_url()|urlencode }}"
+                                target="_blank"
+                                class="flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors duration-200"
+                            >
+                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                                </svg>
+                                Facebook
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Content Sections -->
+            <div class="p-6">
+                <!-- Description -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Description</h3>
+                    <p class="text-gray-700 leading-relaxed" id="videoDescription">{{ video.get_seo_description() }}</p>
+                </div>
+                
+                <!-- Tags -->
+                {% if video.get_seo_tags() %}
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Tags</h3>
+                    <div class="flex flex-wrap gap-2">
+                        {% for tag in video.get_seo_tags() %}
+                        <span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm font-medium border border-blue-200">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Creator Info -->
+                <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                            {{ video.user.email[0].upper() }}
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-gray-500">Created by</p>
+                            <p class="font-medium text-gray-900">{{ video.user.email }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3">
+                        <button class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center text-sm">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                            Follow
+                        </button>
+                        <a href="/profile/{{ video.user.id }}" class="text-blue-600 hover:text-blue-700 font-medium text-sm">
+                            View Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Section -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-semibold">Discussion</h2>
+                <div class="flex items-center space-x-2 text-sm text-gray-500">
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span id="chatStatus">Live Chat</span>
+                </div>
+            </div>
+            
+            <!-- Chat Messages Container -->
+            <div id="watchChatMessages" class="max-h-96 overflow-y-auto space-y-4 mb-6 border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <div class="text-center text-gray-500 py-8">
+                    <svg class="mx-auto w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                    </svg>
+                    <p class="font-medium">Join the conversation!</p>
+                    <p class="text-sm">Share your thoughts about this video</p>
+                </div>
+            </div>
+            
+            <!-- Chat Input -->
+            <div class="border-t border-gray-200 pt-4">
+                <form id="watchChatForm" class="space-y-3">
+                    <div class="relative">
+                        <textarea
+                            id="watchChatInput"
+                            placeholder="What do you think about this video?"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                            rows="3"
+                            maxlength="500"
+                        ></textarea>
+                        <div class="absolute bottom-2 right-2 text-xs text-gray-400" id="watchChatCharCount">0/500</div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <button type="button" id="watchEmojiBtn" class="text-gray-400 hover:text-gray-600 text-lg">
+                                😊
+                            </button>
+                            <span class="text-xs text-gray-500">Shift+Enter for new line</span>
+                        </div>
+                        <button
+                            type="submit"
+                            class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            id="watchChatSendBtn"
+                        >
+                            Send Message
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Video Analytics (for video owner) -->
+        <div id="analyticsSection" class="bg-white rounded-lg shadow-lg p-6 mb-8 hidden">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-semibold">Video Analytics</h2>
+                <div class="flex items-center space-x-2">
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span class="text-sm text-gray-500">Live Data</span>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Views Card -->
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-blue-600">Total Views</p>
+                            <p class="text-2xl font-bold text-blue-700" id="analyticsViews">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Engagement Card -->
+                <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border border-green-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-green-600">Engagement Rate</p>
+                            <p class="text-2xl font-bold text-green-700" id="analyticsEngagement">0%</p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Growth Card -->
+                <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border border-purple-200">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-purple-600">Daily Views</p>
+                            <p class="text-2xl font-bold text-purple-700" id="analyticsDailyViews">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Video Settings -->
+            <div class="mt-6 pt-6 border-t border-gray-200">
+                <h3 class="text-lg font-semibold mb-4">Video Settings</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <p class="font-medium text-gray-900">Public Visibility</p>
+                            <p class="text-sm text-gray-500">Anyone can view this video</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="publicToggle" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <p class="font-medium text-gray-900">Allow Embedding</p>
+                            <p class="text-sm text-gray-500">Others can embed this video</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="embedToggle" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Video Modal -->
+        <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-2xl font-bold text-gray-900">Edit Video</h2>
+                            <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="p-6">
+                        <form id="editVideoForm" class="space-y-6">
+                            <!-- Original Prompt (Read-only) -->
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Original Prompt</label>
+                                <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                    <p class="text-gray-700" id="originalPrompt">{{ video.prompt }}</p>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">This is the original prompt used to generate the video and cannot be changed.</p>
+                            </div>
+                            
+                            <!-- Title -->
+                            <div>
+                                <label for="editTitle" class="block text-sm font-semibold text-gray-700 mb-2">Video Title</label>
+                                <input 
+                                    type="text" 
+                                    id="editTitle" 
+                                    name="title"
+                                    value="{{ video.title or '' }}"
+                                    placeholder="Enter a compelling title for your video"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    maxlength="200"
+                                >
+                                <p class="text-xs text-gray-500 mt-1">Keep it under 200 characters for best results.</p>
+                            </div>
+                            
+                            <!-- Description -->
+                            <div>
+                                <label for="editDescription" class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                                <textarea 
+                                    id="editDescription" 
+                                    name="description"
+                                    rows="4"
+                                    placeholder="Describe your video to help viewers understand what it's about"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                >{{ video.description or '' }}</textarea>
+                                <p class="text-xs text-gray-500 mt-1">Add relevant details, keywords, and context.</p>
+                            </div>
+                            
+                            <!-- Tags -->
+                            <div>
+                                <label for="editTags" class="block text-sm font-semibold text-gray-700 mb-2">Tags</label>
+                                <input 
+                                    type="text" 
+                                    id="editTags" 
+                                    name="tags"
+                                    value="{{ video.tags|join(', ') if video.tags else '' }}"
+                                    placeholder="Enter tags separated by commas"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                <p class="text-xs text-gray-500 mt-1">Add relevant tags to help people discover your video.</p>
+                            </div>
+                            
+                            <!-- Visibility Settings -->
+                            <div class="space-y-4">
+                                <h3 class="text-lg font-semibold text-gray-900">Visibility Settings</h3>
+                                
+                                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                    <div>
+                                        <p class="font-medium text-gray-900">Public Video</p>
+                                        <p class="text-sm text-gray-500">Anyone can view and share this video</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="editPublicToggle" name="public" class="sr-only peer" {% if video.public %}checked{% endif %}>
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </label>
+                                </div>
+                                
+                                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                    <div>
+                                        <p class="font-medium text-gray-900">Allow Embedding</p>
+                                        <p class="text-sm text-gray-500">Others can embed this video on their websites</p>
+                                    </div>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="editEmbedToggle" name="embed_enabled" class="sr-only peer" {% if video.embed_enabled %}checked{% endif %}>
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                    </label>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="p-6 border-t border-gray-200 flex justify-end space-x-3">
+                        <button 
+                            onclick="closeEditModal()"
+                            class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            onclick="saveVideoChanges()"
+                            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                            id="saveVideoBtn"
+                        >
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Related Videos -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">More Videos</h2>
+            {% if related_videos %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for related_video in related_videos %}
+                <a href="{{ url_for('main.watch_video', video_id=related_video.id, slug=related_video.slug or related_video.generate_slug()) }}" 
+                   class="block hover:shadow-md transition-shadow rounded-lg overflow-hidden group">
+                    <div class="aspect-video bg-gray-200 relative">
+                        {% if related_video.status == 'completed' and related_video.gcs_signed_url %}
+                            {% if related_video.thumbnail_url %}
+                                <!-- Show thumbnail if available -->
+                                <img src="{{ related_video.thumbnail_url }}" alt="{{ related_video.get_seo_title() }}" class="w-full h-full object-cover">
+                            {% else %}
+                                <!-- Show video preview if no thumbnail -->
+                                <video class="w-full h-full object-cover" preload="metadata" muted>
+                                    <source src="{{ related_video.gcs_signed_url }}" type="video/mp4">
+                                </video>
+                            {% endif %}
+                        {% else %}
+                            <!-- Fallback for videos without thumbnails or not completed -->
+                            <div class="w-full h-full flex items-center justify-center text-gray-500 bg-gray-100">
+                                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Play Button Overlay -->
+                        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
+                            <div class="bg-white bg-opacity-90 rounded-full p-3 transform scale-75 group-hover:scale-100 transition-transform duration-200">
+                                <svg class="w-6 h-6 text-gray-800 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        <!-- Duration Badge (if available) -->
+                        {% if related_video.duration %}
+                        <div class="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded">
+                            {{ related_video.duration }}s
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="p-3">
+                        <h3 class="font-medium text-gray-900 text-sm line-clamp-2 group-hover:text-primary transition-colors">
+                            {{ related_video.prompt[:60] }}{% if related_video.prompt|length > 60 %}...{% endif %}
+                        </h3>
+                        <div class="flex items-center justify-between mt-2">
+                            <p class="text-xs text-gray-500">{{ related_video.views }} views</p>
+                            <p class="text-xs text-gray-400">{{ related_video.created_at.strftime('%b %d') }}</p>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No other videos yet</h3>
+                <p class="mt-1 text-sm text-gray-500">Be the first to create and share amazing videos!</p>
+                <div class="mt-6">
+                    <a href="{{ url_for('main.index') }}" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-secondary">
+                        Create Your First Video
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Success Toast -->
+<div id="toast" class="fixed top-20 bg-green-600 text-white px-6 py-4 rounded-lg shadow-xl border border-green-500 transform translate-x-full transition-all duration-300 z-50 max-w-sm" style="left: 50%; transform: translateX(-50%) translateX(100vw);">
+    <div class="flex items-center">
+        <svg class="w-6 h-6 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+        </svg>
+        <span id="toastMessage" class="font-medium">Copied to clipboard!</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleShareMenu() {
+    const menu = document.getElementById('shareMenu');
+    const button = event.target;
+    console.log('Share menu toggle clicked');
+    
+    if (menu.classList.contains('hidden')) {
+        // Show menu - simple center positioning
+        menu.style.top = '50%';
+        menu.style.left = '50%';
+        menu.style.transform = 'translate(-50%, -50%)';
+        menu.style.position = 'fixed';
+        menu.style.zIndex = '9999';
+        
+        // Add backdrop
+        const backdrop = document.createElement('div');
+        backdrop.id = 'shareBackdrop';
+        backdrop.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9998;
+        `;
+        backdrop.onclick = function() {
+            hideShareMenu();
+        };
+        document.body.appendChild(backdrop);
+        
+        menu.classList.remove('hidden');
+        console.log('Menu shown in center');
+    } else {
+        hideShareMenu();
+    }
+}
+
+function hideShareMenu() {
+    const menu = document.getElementById('shareMenu');
+    const backdrop = document.getElementById('shareBackdrop');
+    
+    menu.classList.add('hidden');
+    if (backdrop) {
+        backdrop.remove();
+    }
+    console.log('Menu hidden');
+}
+
+function copyShareUrl() {
+    console.log('Copy share URL clicked');
+    const urlInput = document.getElementById('shareUrl');
+    const copyButton = urlInput.nextElementSibling;
+    
+    urlInput.select();
+    document.execCommand('copy');
+    
+    // Visual feedback
+    const originalText = copyButton.innerHTML;
+    copyButton.innerHTML = '<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Copied!';
+    copyButton.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+    copyButton.classList.add('bg-green-500');
+    
+    setTimeout(() => {
+        copyButton.innerHTML = originalText;
+        copyButton.classList.remove('bg-green-500');
+        copyButton.classList.add('bg-blue-500', 'hover:bg-blue-600');
+    }, 2000);
+    
+    showToast('Link copied to clipboard!');
+}
+
+function copyEmbedCode() {
+    const embedTextarea = document.getElementById('embedCode');
+    const copyButton = embedTextarea.nextElementSibling;
+    
+    embedTextarea.select();
+    document.execCommand('copy');
+    
+    // Visual feedback
+    const originalText = copyButton.innerHTML;
+    copyButton.innerHTML = '<svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Copied!';
+    copyButton.classList.remove('bg-green-500', 'hover:bg-green-600');
+    copyButton.classList.add('bg-green-600');
+    
+    setTimeout(() => {
+        copyButton.innerHTML = originalText;
+        copyButton.classList.remove('bg-green-600');
+        copyButton.classList.add('bg-green-500', 'hover:bg-green-600');
+    }, 2000);
+    
+    showToast('Embed code copied to clipboard!');
+}
+
+
+
+// Auto-hide share menu on escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        hideShareMenu();
+    }
+});
+
+// ===== EMBEDDED CHAT SYSTEM =====
+let watchChatMessages = [];
+const currentVideoId = {{ video.id }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize chat system
+    initializeWatchChat();
+    loadWatchChatMessages();
+    
+    // Initialize video editing features
+    checkVideoOwnership();
+    
+    // Auto-open edit modal if ?edit=1 is in the URL
+    if (window.location.search.includes('edit=1')) {
+        setTimeout(() => {
+            openEditModal();
+        }, 500);
+    }
+    
+    // Close modal when clicking outside
+    const editModal = document.getElementById('editModal');
+    if (editModal) {
+        editModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditModal();
+            }
+        });
+    }
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeEditModal();
+        }
+    });
+});
+
+function initializeWatchChat() {
+    console.log('🗨️ Initializing embedded chat for video:', currentVideoId);
+    
+    const chatInput = document.getElementById('watchChatInput');
+    const charCount = document.getElementById('watchChatCharCount');
+    const chatForm = document.getElementById('watchChatForm');
+    
+    // Character counter
+    chatInput.addEventListener('input', function() {
+        const count = this.value.length;
+        charCount.textContent = `${count}/500`;
+        
+        if (count > 450) {
+            charCount.classList.add('text-red-500');
+            charCount.classList.remove('text-gray-400');
+        } else {
+            charCount.classList.remove('text-red-500');
+            charCount.classList.add('text-gray-400');
+        }
+    });
+    
+    // Auto-resize textarea
+    chatInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+    });
+    
+    // Handle form submission
+    chatForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        sendWatchChatMessage();
+    });
+    
+    // Handle Enter key for sending (Shift+Enter for new line)
+    chatInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendWatchChatMessage();
+        }
+    });
+    
+    // Emoji button placeholder
+    document.getElementById('watchEmojiBtn').addEventListener('click', function() {
+        // Insert a simple emoji at cursor position
+        const emojis = ['😊', '👍', '❤️', '😂', '🔥'];
+        const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+        const input = document.getElementById('watchChatInput');
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        const text = input.value;
+        input.value = text.substring(0, start) + randomEmoji + text.substring(end);
+        input.focus();
+        input.setSelectionRange(start + randomEmoji.length, start + randomEmoji.length);
+        
+        // Trigger input event to update character count
+        input.dispatchEvent(new Event('input'));
+    });
+}
+
+async function loadWatchChatMessages() {
+    console.log('🗨️ Loading embedded chat messages for video:', currentVideoId);
+    
+    const authToken = localStorage.getItem('auth_token');
+    if (!authToken) {
+        showWatchChatError('Please log in to view and participate in the discussion');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/v1/videos/${currentVideoId}/chat/messages`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load messages');
+        }
+        
+        const data = await response.json();
+        watchChatMessages = data.messages;
+        
+        renderWatchChatMessages();
+        
+    } catch (error) {
+        console.error('🗨️ Error loading embedded chat messages:', error);
+        showWatchChatError('Failed to load discussion messages');
+    }
+}
+
+function renderWatchChatMessages() {
+    console.log('🗨️ Rendering', watchChatMessages.length, 'embedded messages');
+    const container = document.getElementById('watchChatMessages');
+    
+    if (watchChatMessages.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-gray-500 py-8">
+                <svg class="mx-auto w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+                <p class="font-medium">Join the conversation!</p>
+                <p class="text-sm">Share your thoughts about this video</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = watchChatMessages.map(message => renderWatchMessage(message)).join('');
+    scrollWatchChatToBottom();
+}
+
+function renderWatchMessage(message) {
+    const isCurrentUser = getWatchCurrentUserId() == message.user.id;
+    const messageTime = new Date(message.created_at);
+    const timeString = messageTime.toLocaleString([], {
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit', 
+        minute:'2-digit'
+    });
+    
+    return `
+        <div class="watch-chat-message" data-message-id="${message.id}">
+            <!-- Main Message -->
+            <div class="flex items-start space-x-3 group">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
+                    ${message.user.avatar}
+                </div>
+                
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center space-x-2 mb-1">
+                        <span class="font-medium text-gray-900">${escapeWatchHtml(message.user.email)}</span>
+                        <span class="text-xs text-gray-500">${timeString}</span>
+                        ${message.edited ? '<span class="text-xs text-gray-400">(edited)</span>' : ''}
+                    </div>
+                    
+                    <div class="text-gray-800 leading-relaxed">
+                        ${escapeWatchHtml(message.content)}
+                    </div>
+                    
+                    <!-- Message Actions -->
+                    <div class="flex items-center space-x-4 mt-2">
+                        ${renderWatchReactions(message.reactions, message.id, 'message')}
+                        <button onclick="showWatchEmojiPicker(${message.id}, 'message', event)" 
+                                class="text-gray-400 hover:text-gray-600 text-sm transition-colors">
+                            Add Reaction
+                        </button>
+                        <button onclick="toggleWatchReplies(${message.id})" 
+                                class="text-gray-400 hover:text-blue-600 text-sm transition-colors flex items-center space-x-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                            </svg>
+                            <span>${message.reply_count} ${message.reply_count === 1 ? 'reply' : 'replies'}</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Replies Section -->
+                    <div id="watch-replies-${message.id}" class="mt-4 pl-4 border-l-2 border-gray-200 space-y-3 hidden">
+                        ${message.replies.map(reply => renderWatchReply(reply)).join('')}
+                        
+                        <!-- Reply Input -->
+                        <div class="watch-reply-input-container hidden">
+                            <form onsubmit="sendWatchReply(event, ${message.id})" class="flex space-x-3 mt-3">
+                                <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                                    ${getCurrentUserAvatar()}
+                                </div>
+                                <div class="flex-1">
+                                    <input type="text" placeholder="Write a reply..." 
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                                           maxlength="250">
+                                    <div class="flex justify-end mt-2">
+                                        <button type="submit" class="bg-blue-500 text-white px-4 py-1 rounded-lg text-sm hover:bg-blue-600 transition-colors">
+                                            Reply
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderWatchReply(reply) {
+    const isCurrentUser = getWatchCurrentUserId() == reply.user.id;
+    const replyTime = new Date(reply.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    
+    return `
+        <div class="watch-chat-reply" data-reply-id="${reply.id}">
+            <div class="flex items-start space-x-3">
+                <div class="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                    ${reply.user.avatar}
+                </div>
+                
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center space-x-2 mb-1">
+                        <span class="font-medium text-gray-800 text-sm">${escapeWatchHtml(reply.user.email)}</span>
+                        <span class="text-xs text-gray-500">${replyTime}</span>
+                        ${reply.edited ? '<span class="text-xs text-gray-400">(edited)</span>' : ''}
+                    </div>
+                    
+                    <div class="text-gray-700 text-sm leading-relaxed">
+                        ${escapeWatchHtml(reply.content)}
+                    </div>
+                    
+                    <!-- Reply Actions -->
+                    <div class="flex items-center space-x-3 mt-1">
+                        ${renderWatchReactions(reply.reactions, reply.id, 'reply')}
+                        <button onclick="showWatchEmojiPicker(${reply.id}, 'reply', event)" 
+                                class="text-gray-400 hover:text-gray-600 text-xs transition-colors">
+                            React
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderWatchReactions(reactions, id, type) {
+    if (!reactions || Object.keys(reactions).length === 0) return '';
+    
+    return Object.entries(reactions).map(([emoji, data]) => `
+        <button onclick="toggleWatchReaction('${emoji}', ${id}, '${type}')" 
+                class="inline-flex items-center space-x-1 text-sm bg-gray-100 hover:bg-blue-100 rounded-full px-2 py-1 transition-colors"
+                title="${data.users.map(u => u.email).join(', ')}">
+            <span>${emoji}</span>
+            <span class="text-gray-600 text-xs">${data.count}</span>
+        </button>
+    `).join('');
+}
+
+async function sendWatchChatMessage() {
+    const input = document.getElementById('watchChatInput');
+    const content = input.value.trim();
+    
+    if (!content) return;
+    
+    const authToken = localStorage.getItem('auth_token');
+    if (!authToken) {
+        showWatchChatError('Please log in to send messages');
+        return;
+    }
+    
+    // Disable input while sending
+    input.disabled = true;
+    document.getElementById('watchChatSendBtn').disabled = true;
+    
+    try {
+        const response = await fetch(`/api/v1/videos/${currentVideoId}/chat/messages`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ content })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to send message');
+        }
+        
+        const data = await response.json();
+        
+        // Add new message to local array
+        watchChatMessages.push(data.message);
+        
+        // Clear input
+        input.value = '';
+        input.style.height = 'auto';
+        document.getElementById('watchChatCharCount').textContent = '0/500';
+        
+        // Re-render messages
+        renderWatchChatMessages();
+        
+    } catch (error) {
+        console.error('🗨️ Error sending embedded message:', error);
+        showWatchChatError('Failed to send message');
+    } finally {
+        input.disabled = false;
+        document.getElementById('watchChatSendBtn').disabled = false;
+        input.focus();
+    }
+}
+
+function toggleWatchReplies(messageId) {
+    const repliesContainer = document.getElementById(`watch-replies-${messageId}`);
+    const inputContainer = repliesContainer.querySelector('.watch-reply-input-container');
+    
+    if (repliesContainer.classList.contains('hidden')) {
+        repliesContainer.classList.remove('hidden');
+        inputContainer.classList.remove('hidden');
+        inputContainer.querySelector('input').focus();
+    } else {
+        repliesContainer.classList.add('hidden');
+        inputContainer.classList.add('hidden');
+    }
+}
+
+async function sendWatchReply(event, messageId) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const input = form.querySelector('input');
+    const content = input.value.trim();
+    
+    if (!content) return;
+    
+    const authToken = localStorage.getItem('auth_token');
+    if (!authToken) {
+        showWatchChatError('Please log in to send replies');
+        return;
+    }
+    
+    input.disabled = true;
+    
+    try {
+        const response = await fetch(`/api/v1/chat/messages/${messageId}/replies`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ content })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to send reply');
+        }
+        
+        const data = await response.json();
+        
+        // Find and update the message in local array
+        const message = watchChatMessages.find(m => m.id === messageId);
+        if (message) {
+            message.replies.push(data.reply);
+            message.reply_count = message.replies.length;
+        }
+        
+        // Clear input
+        input.value = '';
+        
+        // Re-render messages
+        renderWatchChatMessages();
+        
+        // Keep replies open
+        document.getElementById(`watch-replies-${messageId}`).classList.remove('hidden');
+        
+    } catch (error) {
+        console.error('🗨️ Error sending embedded reply:', error);
+        showWatchChatError('Failed to send reply');
+    } finally {
+        input.disabled = false;
+    }
+}
+
+function showWatchEmojiPicker(id, type, event) {
+    event.preventDefault();
+    
+    const emojis = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏', '🤔', '💯'];
+    
+    const picker = document.createElement('div');
+    picker.className = 'absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 grid grid-cols-5 gap-1';
+    picker.innerHTML = emojis.map(emoji => 
+        `<button onclick="selectWatchEmoji('${emoji}', ${id}, '${type}')" class="hover:bg-gray-100 p-2 rounded text-xl transition-colors">${emoji}</button>`
+    ).join('');
+    
+    // Position picker near the clicked element
+    const button = event.target.closest('button');
+    const rect = button.getBoundingClientRect();
+    picker.style.top = (rect.bottom + 5) + 'px';
+    picker.style.left = rect.left + 'px';
+    picker.style.position = 'fixed';
+    
+    document.body.appendChild(picker);
+    
+    // Remove picker when clicking outside
+    setTimeout(() => {
+        document.addEventListener('click', function removePicker(e) {
+            if (!picker.contains(e.target)) {
+                picker.remove();
+                document.removeEventListener('click', removePicker);
+            }
+        });
+    }, 100);
+}
+
+async function selectWatchEmoji(emoji, id, type) {
+    const authToken = localStorage.getItem('auth_token');
+    if (!authToken) return;
+    
+    try {
+        const endpoint = type === 'reply' 
+            ? `/api/v1/chat/replies/${id}/reactions`
+            : `/api/v1/chat/messages/${id}/reactions`;
+            
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ emoji })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to toggle reaction');
+        }
+        
+        // Reload messages to update reactions
+        await loadWatchChatMessages();
+        
+    } catch (error) {
+        console.error('🗨️ Error toggling embedded reaction:', error);
+    }
+    
+    // Remove emoji picker
+    document.querySelectorAll('.absolute.z-50').forEach(el => el.remove());
+}
+
+async function toggleWatchReaction(emoji, id, type) {
+    const authToken = localStorage.getItem('auth_token');
+    if (!authToken) return;
+    
+    try {
+        const endpoint = type === 'reply' 
+            ? `/api/v1/chat/replies/${id}/reactions`
+            : `/api/v1/chat/messages/${id}/reactions`;
+            
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ emoji })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to toggle reaction');
+        }
+        
+        // Reload messages to update reactions
+        await loadWatchChatMessages();
+        
+    } catch (error) {
+        console.error('🗨️ Error toggling embedded reaction:', error);
+    }
+}
+
+function scrollWatchChatToBottom() {
+    const container = document.getElementById('watchChatMessages');
+    container.scrollTop = container.scrollHeight;
+}
+
+function showWatchChatError(message) {
+    const container = document.getElementById('watchChatMessages');
+    container.innerHTML = `
+        <div class="text-center text-red-500 py-8">
+            <svg class="mx-auto w-12 h-12 text-red-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p>${message}</p>
+        </div>
+    `;
+}
+
+function getWatchCurrentUserId() {
+    const authToken = localStorage.getItem('auth_token');
+    if (!authToken) return null;
+    
+    try {
+        const payload = JSON.parse(atob(authToken.split('.')[1]));
+        return payload.user_id;
+    } catch (e) {
+        return null;
+    }
+}
+
+function getCurrentUserAvatar() {
+    const authToken = localStorage.getItem('auth_token');
+    if (!authToken) return 'U';
+    
+    try {
+        const payload = JSON.parse(atob(authToken.split('.')[1]));
+        return payload.email ? payload.email[0].toUpperCase() : 'U';
+    } catch (e) {
+        return 'U';
+    }
+}
+
+function escapeWatchHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Video Editing and Analytics Functions
+let isVideoOwner = false;
+
+// Check if current user is the video owner
+async function checkVideoOwnership() {
+    const authToken = localStorage.getItem('auth_token');
+    if (!authToken) return;
+    
+    try {
+        const response = await fetch(`/api/v1/auth/me`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        if (response.ok) {
+            const user = await response.json();
+            isVideoOwner = user.id === {{ video.user_id }};
+            
+            if (isVideoOwner) {
+                // Show edit button and analytics
+                document.getElementById('editButtonContainer').classList.remove('hidden');
+                document.getElementById('analyticsSection').classList.remove('hidden');
+                
+                // Load analytics
+                loadVideoAnalytics();
+                
+                // Set up toggle listeners
+                setupVideoToggles();
+            }
+        }
+    } catch (error) {
+        console.error('Error checking video ownership:', error);
+    }
+}
+
+// Load video analytics
+async function loadVideoAnalytics() {
+    const authToken = localStorage.getItem('auth_token');
+    if (!authToken) return;
+    
+    try {
+        const response = await fetch(`/api/videos/${currentVideoId}/analytics`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            updateAnalyticsDisplay(data.analytics);
+        }
+    } catch (error) {
+        console.error('Error loading analytics:', error);
+    }
+}
+
+// Update analytics display
+function updateAnalyticsDisplay(analytics) {
+    document.getElementById('analyticsViews').textContent = analytics.views.toLocaleString();
+    document.getElementById('analyticsEngagement').textContent = `${analytics.engagement_rate}%`;
+    document.getElementById('analyticsDailyViews').textContent = analytics.view_trend.daily_views.toLocaleString();
+    
+    // Update main video views
+    document.getElementById('videoViews').textContent = `${analytics.views} views`;
+    
+    // Set toggle states
+    document.getElementById('publicToggle').checked = analytics.public;
+    document.getElementById('embedToggle').checked = analytics.embed_enabled;
+}
+
+// Setup video setting toggles
+function setupVideoToggles() {
+    const publicToggle = document.getElementById('publicToggle');
+    const embedToggle = document.getElementById('embedToggle');
+    
+    publicToggle.addEventListener('change', () => updateVideoSetting('public', publicToggle.checked));
+    embedToggle.addEventListener('change', () => updateVideoSetting('embed_enabled', embedToggle.checked));
+}
+
+// Update video setting
+async function updateVideoSetting(setting, value) {
+    const authToken = localStorage.getItem('auth_token');
+    if (!authToken) return;
+    
+    try {
+        const response = await fetch(`/api/videos/${currentVideoId}/edit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ [setting]: value })
+        });
+        
+        if (response.ok) {
+            showToast(`${setting === 'public' ? 'Visibility' : 'Embedding'} updated successfully`);
+        } else {
+            throw new Error('Failed to update setting');
+        }
+    } catch (error) {
+        console.error('Error updating video setting:', error);
+        showToast('Failed to update setting', 'error');
+        
+        // Revert toggle
+        const toggle = document.getElementById(setting === 'public' ? 'publicToggle' : 'embedToggle');
+        toggle.checked = !value;
+    }
+}
+
+// Open edit modal
+function openEditModal() {
+    document.getElementById('editModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+// Close edit modal
+function closeEditModal() {
+    document.getElementById('editModal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+// Save video changes
+async function saveVideoChanges() {
+    const authToken = localStorage.getItem('auth_token');
+    if (!authToken) {
+        showToast('Please log in to edit videos', 'error');
+        return;
+    }
+    
+    const saveBtn = document.getElementById('saveVideoBtn');
+    const originalText = saveBtn.innerHTML;
+    
+    // Show loading state
+    saveBtn.innerHTML = `
+        <svg class="animate-spin w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        Saving...
+    `;
+    saveBtn.disabled = true;
+    
+    try {
+        // Get form data
+        const title = document.getElementById('editTitle').value.trim();
+        const description = document.getElementById('editDescription').value.trim();
+        const tags = document.getElementById('editTags').value.trim();
+        const public = document.getElementById('editPublicToggle').checked;
+        const embedEnabled = document.getElementById('editEmbedToggle').checked;
+        
+        // Parse tags
+        const tagsArray = tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+        
+        const response = await fetch(`/api/videos/${currentVideoId}/edit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+                title: title || null,
+                description: description || null,
+                tags: tagsArray,
+                public: public,
+                embed_enabled: embedEnabled
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            // Update display
+            document.getElementById('videoTitle').textContent = data.video.title || 'Untitled Video';
+            document.getElementById('videoDescription').textContent = data.video.description || 'No description available.';
+            
+            // Update analytics section
+            document.getElementById('publicToggle').checked = data.video.public;
+            document.getElementById('embedToggle').checked = data.video.embed_enabled;
+            
+            // Close modal
+            closeEditModal();
+            
+            // Show success message
+            showToast('Video updated successfully');
+            
+            // Reload analytics
+            loadVideoAnalytics();
+            
+        } else {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to update video');
+        }
+        
+    } catch (error) {
+        console.error('Error saving video changes:', error);
+        showToast(error.message || 'Failed to save changes', 'error');
+    } finally {
+        // Restore button
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+    }
+}
+
+// Enhanced toast function
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toastMessage');
+    
+    // Update message and styling
+    toastMessage.textContent = message;
+    
+    if (type === 'error') {
+        toast.className = 'fixed top-20 bg-red-600 text-white px-6 py-4 rounded-lg shadow-xl border border-red-500 transform translate-x-full transition-all duration-300 z-50 max-w-sm';
+        toast.style.left = '50%';
+        toast.style.transform = 'translateX(-50%) translateX(100vw)';
+    } else {
+        toast.className = 'fixed top-20 bg-green-600 text-white px-6 py-4 rounded-lg shadow-xl border border-green-500 transform translate-x-full transition-all duration-300 z-50 max-w-sm';
+        toast.style.left = '50%';
+        toast.style.transform = 'translateX(-50%) translateX(100vw)';
+    }
+    
+    // Show toast
+    setTimeout(() => {
+        toast.style.transform = 'translateX(-50%) translateX(0)';
+    }, 100);
+    
+    // Hide toast after 3 seconds
+    setTimeout(() => {
+        toast.style.transform = 'translateX(-50%) translateX(100vw)';
+    }, 3000);
+}
+
+
+</script>
+{% endblock %} 

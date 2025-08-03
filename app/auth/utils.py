@@ -1,0 +1,105 @@
+from functools import wraps
+from flask import request, jsonify, current_app
+import jwt
+from datetime import datetime, timedelta
+from app.models import User
+
+def generate_token(user_id, expires_in=3600):
+    """Generate JWT token for user"""
+    payload = {
+        'user_id': user_id,
+        'exp': datetime.utcnow() + timedelta(seconds=expires_in),
+        'iat': datetime.utcnow()
+    }
+    return jwt.encode(payload, current_app.config['JWT_SECRET_KEY'], algorithm='HS256')
+
+def verify_token(token):
+    """Verify JWT token and return user_id"""
+    try:
+        current_app.logger.info(f"DEBUG: Verifying token: {token[:20]}...")
+        payload = jwt.decode(token, current_app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
+        user_id = payload['user_id']
+        current_app.logger.info(f"DEBUG: Token verified successfully, user_id: {user_id}")
+        return user_id
+    except jwt.ExpiredSignatureError:
+        current_app.logger.error("DEBUG: Token expired")
+        return None
+    except jwt.InvalidTokenError as e:
+        current_app.logger.error(f"DEBUG: Invalid token: {e}")
+        return None
+    except Exception as e:
+        current_app.logger.error(f"DEBUG: Token verification error: {e}")
+        return None
+
+def login_required(f):
+    """Decorator to require authentication"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Add debugging output
+        current_app.logger.info("=== LOGIN_REQUIRED DEBUG ===")
+        current_app.logger.info(f"Request headers: {dict(request.headers)}")
+        current_app.logger.info(f"Request cookies: {dict(request.cookies)}")
+        
+        token = request.headers.get('Authorization')
+        current_app.logger.info(f"Authorization header: {token}")
+        
+        if not token:
+            current_app.logger.error("No Authorization header found")
+            return jsonify({'error': 'Authorization header required'}), 401
+        
+        if token.startswith('Bearer '):
+            token = token[7:]
+            current_app.logger.info(f"Extracted token: {token[:20]}...")
+        else:
+            current_app.logger.info(f"Token (no Bearer prefix): {token[:20]}...")
+        
+        user_id = verify_token(token)
+        current_app.logger.info(f"Token verification result - User ID: {user_id}")
+        
+        if not user_id:
+            current_app.logger.error("Token verification failed - invalid or expired token")
+            return jsonify({'error': 'Invalid or expired token'}), 401
+        
+        user = User.query.get(user_id)
+        current_app.logger.info(f"User lookup result: {user.email if user else 'NOT FOUND'}")
+        
+        if not user:
+            current_app.logger.error(f"User not found for ID: {user_id}")
+            return jsonify({'error': 'User not found'}), 401
+        
+        request.user_id = user_id
+        request.current_user = user
+        current_app.logger.info(f"Authentication successful - User: {user.email}")
+        return f(*args, **kwargs)
+    
+    return decorated_function
+
+def admin_required(f):
+    """Decorator to require admin authentication"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        
+        if not token:
+            return jsonify({'error': 'Authorization header required'}), 401
+        
+        if token.startswith('Bearer '):
+            token = token[7:]
+        
+        user_id = verify_token(token)
+        if not user_id:
+            return jsonify({'error': 'Invalid or expired token'}), 401
+        
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 401
+        
+        # Check if user is admin (you'll need to add admin field to User model)
+        if not hasattr(user, 'is_admin') or not user.is_admin:
+            return jsonify({'error': 'Admin access required'}), 403
+        
+        request.user_id = user_id
+        request.current_user = user
+        return f(*args, **kwargs)
+    
+    return decorated_function 

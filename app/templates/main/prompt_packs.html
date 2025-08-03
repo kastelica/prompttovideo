@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}Prompt Packs - PromptToVideo{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">Prompt Packs</h1>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+            Ready-to-use prompt collections to help you create amazing videos. 
+            Choose from curated themes and categories.
+        </p>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div class="flex flex-col md:flex-row gap-4">
+            <div class="flex-1">
+                <input type="text" 
+                       id="searchInput" 
+                       placeholder="Search prompt packs..." 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+            </div>
+            <div class="flex gap-2">
+                <select id="categoryFilter" class="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                    <option value="">All Categories</option>
+                    <option value="nature">Nature</option>
+                    <option value="sci-fi">Sci-Fi</option>
+                    <option value="business">Business</option>
+                    <option value="art">Art</option>
+                    <option value="travel">Travel</option>
+                    <option value="food">Food</option>
+                    <option value="sports">Sports</option>
+                </select>
+                <button id="featuredFilter" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-secondary transition-colors">
+                    Featured Only
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prompt Packs Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="packsGrid">
+        {% for pack in prompt_packs %}
+        <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow prompt-pack-card" 
+             data-name="{{ pack.name|lower }}" 
+             data-category="{{ pack.category|lower if pack.category else '' }}"
+             data-featured="{{ 'true' if pack.featured else 'false' }}">
+            
+            <!-- Pack Header -->
+            <div class="p-6 border-b border-gray-100">
+                <div class="flex items-start justify-between mb-3">
+                    <h3 class="text-xl font-semibold text-gray-900">{{ pack.name }}</h3>
+                    {% if pack.featured %}
+                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">
+                        Featured
+                    </span>
+                    {% endif %}
+                </div>
+                <p class="text-gray-600 mb-4">{{ pack.description }}</p>
+                
+                <!-- Category Badge -->
+                {% if pack.category %}
+                <span class="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">
+                    {{ pack.category }}
+                </span>
+                {% endif %}
+            </div>
+
+            <!-- Pack Stats -->
+            <div class="px-6 py-4 bg-gray-50">
+                <div class="flex items-center justify-between text-sm text-gray-600">
+                    <span>{{ pack.prompts|length if pack.prompts else 0 }} prompts</span>
+                    <span class="text-primary font-medium">Free</span>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="p-6">
+                <div class="flex gap-3">
+                    <a href="{{ url_for('main.view_prompt_pack', pack_id=pack.id) }}" 
+                       class="flex-1 bg-primary text-white text-center py-2 px-4 rounded-md hover:bg-secondary transition-colors">
+                        View Prompts
+                    </a>
+                    <button onclick="previewPack({{ pack.id }})" 
+                            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">
+                        Preview
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="hidden text-center py-12">
+        <div class="text-gray-500">
+            <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+            </svg>
+            <h3 class="text-lg font-medium mb-2">No prompt packs found</h3>
+            <p>Try adjusting your search or filter criteria.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div id="previewModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h3 id="previewTitle" class="text-xl font-semibold">Preview Pack</h3>
+                <button onclick="closePreview()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div id="previewContent" class="p-6">
+            <!-- Preview content will be loaded here -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Search and filter functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const featuredFilter = document.getElementById('featuredFilter');
+    const packsGrid = document.getElementById('packsGrid');
+    const emptyState = document.getElementById('emptyState');
+    
+    let showFeaturedOnly = false;
+    
+    function filterPacks() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const category = categoryFilter.value.toLowerCase();
+        const cards = document.querySelectorAll('.prompt-pack-card');
+        let visibleCount = 0;
+        
+        cards.forEach(card => {
+            const name = card.dataset.name;
+            const cardCategory = card.dataset.category;
+            const featured = card.dataset.featured === 'true';
+            
+            const matchesSearch = name.includes(searchTerm);
+            const matchesCategory = !category || cardCategory === category;
+            const matchesFeatured = !showFeaturedOnly || featured;
+            
+            if (matchesSearch && matchesCategory && matchesFeatured) {
+                card.style.display = 'block';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        // Show/hide empty state
+        if (visibleCount === 0) {
+            packsGrid.style.display = 'none';
+            emptyState.classList.remove('hidden');
+        } else {
+            packsGrid.style.display = 'grid';
+            emptyState.classList.add('hidden');
+        }
+    }
+    
+    searchInput.addEventListener('input', filterPacks);
+    categoryFilter.addEventListener('change', filterPacks);
+    
+    featuredFilter.addEventListener('click', function() {
+        showFeaturedOnly = !showFeaturedOnly;
+        featuredFilter.textContent = showFeaturedOnly ? 'Show All' : 'Featured Only';
+        featuredFilter.classList.toggle('bg-primary');
+        featuredFilter.classList.toggle('bg-gray-500');
+        filterPacks();
+    });
+});
+
+// Preview functionality
+function previewPack(packId) {
+    const modal = document.getElementById('previewModal');
+    const title = document.getElementById('previewTitle');
+    const content = document.getElementById('previewContent');
+    
+    // Show loading state
+    modal.classList.remove('hidden');
+    title.textContent = 'Loading...';
+    content.innerHTML = '<div class="text-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div></div>';
+    
+    // Fetch pack data
+    fetch(`/prompt-pack/${packId}`)
+        .then(response => response.text())
+        .then(html => {
+            // Extract content from the response (simplified approach)
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const packTitle = doc.querySelector('h1')?.textContent || 'Preview Pack';
+            const packContent = doc.querySelector('.prompt-list')?.innerHTML || '<p>No prompts available</p>';
+            
+            title.textContent = packTitle;
+            content.innerHTML = packContent;
+        })
+        .catch(error => {
+            title.textContent = 'Error';
+            content.innerHTML = '<p class="text-red-600">Failed to load preview</p>';
+        });
+}
+
+function closePreview() {
+    document.getElementById('previewModal').classList.add('hidden');
+}
+</script>
+{% endblock %} 

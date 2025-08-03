@@ -1,0 +1,754 @@
+{% extends "base.html" %}
+
+{% block title %}My Videos - PromptToVideo{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">My Videos</h1>
+                    <p class="text-gray-600 mt-2">Manage and edit your AI-generated videos</p>
+                </div>
+                <a href="/" class="bg-gradient-to-r from-primary to-secondary text-white px-6 py-3 rounded-xl hover:from-secondary hover:to-primary transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                    <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Create New Video
+                </a>
+            </div>
+        </div>
+
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Videos</p>
+                        <p class="text-2xl font-bold text-gray-900" id="totalVideos">{{ videos|length }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Views</p>
+                        <p class="text-2xl font-bold text-gray-900" id="totalViews">{{ videos|sum(attribute='views') }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Completed</p>
+                        <p class="text-2xl font-bold text-gray-900" id="completedVideos">{{ videos|selectattr('status', 'equalto', 'completed')|list|length }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Processing</p>
+                        <p class="text-2xl font-bold text-gray-900" id="processingVideos">{{ videos|selectattr('status', 'in', ['pending', 'processing'])|list|length }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters and Search -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-100">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="searchVideos" 
+                            placeholder="Search videos..." 
+                            class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                        <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                    
+                    <select id="statusFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">All Status</option>
+                        <option value="completed">Completed</option>
+                        <option value="processing">Processing</option>
+                        <option value="pending">Pending</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                    
+                    <select id="visibilityFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">All Visibility</option>
+                        <option value="public">Public</option>
+                        <option value="private">Private</option>
+                    </select>
+                </div>
+                
+                <div class="flex items-center space-x-3">
+                    <button id="bulkEditBtn" class="hidden px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                        Bulk Edit
+                    </button>
+                    <button id="bulkDeleteBtn" class="hidden px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                        Delete Selected
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Videos Grid -->
+        <div id="videosContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for video in videos %}
+            <div class="video-card bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-100" data-video-id="{{ video.id }}" data-status="{{ video.status }}" data-public="{{ video.public|lower }}">
+                <!-- Video Thumbnail -->
+                <div class="relative aspect-video bg-gray-200">
+                    {% if video.status == 'completed' and video.thumbnail_url %}
+                        <img src="{{ video.thumbnail_url }}" alt="{{ video.title or video.prompt[:50] }}" class="w-full h-full object-cover">
+                    {% else %}
+                        <div class="flex items-center justify-center h-full">
+                            {% if video.status == 'processing' %}
+                                <div class="text-center">
+                                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-2"></div>
+                                    <p class="text-sm text-gray-600">Processing...</p>
+                                </div>
+                            {% elif video.status == 'pending' %}
+                                <div class="text-center">
+                                    <svg class="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <p class="text-sm text-gray-600">Queued</p>
+                                </div>
+                            {% else %}
+                                <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                </svg>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Status Badge -->
+                    <div class="absolute top-2 left-2">
+                        {% if video.status == 'completed' %}
+                            <span class="bg-green-500 text-white text-xs px-2 py-1 rounded-full">Completed</span>
+                        {% elif video.status == 'processing' %}
+                            <span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">Processing</span>
+                        {% elif video.status == 'pending' %}
+                            <span class="bg-yellow-500 text-white text-xs px-2 py-1 rounded-full">Pending</span>
+                        {% else %}
+                            <span class="bg-red-500 text-white text-xs px-2 py-1 rounded-full">Failed</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Visibility Badge -->
+                    <div class="absolute top-2 right-2">
+                        {% if video.public %}
+                            <span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">Public</span>
+                        {% else %}
+                            <span class="bg-gray-500 text-white text-xs px-2 py-1 rounded-full">Private</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Checkbox for bulk selection -->
+                    <div class="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <input type="checkbox" class="video-checkbox w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" data-video-id="{{ video.id }}">
+                    </div>
+                    
+                    <!-- Play Button Overlay -->
+                    {% if video.status == 'completed' %}
+                    <div class="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-opacity cursor-pointer flex items-center justify-center"
+                         onclick="window.open('/watch/{{ video.id }}-{{ video.slug or video.generate_slug() }}', '_blank')">
+                        <div class="bg-white bg-opacity-90 rounded-full p-3 transform scale-75 opacity-0 hover:scale-100 hover:opacity-100 transition-all duration-200">
+                            <svg class="w-6 h-6 text-gray-800 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Video Info -->
+                <div class="p-6">
+                    <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2 text-lg">
+                        {{ video.title or (video.prompt[:60] + '...' if video.prompt|length > 60 else video.prompt) or 'Untitled Video' }}
+                    </h3>
+                    
+                    {% if video.description %}
+                    <p class="text-gray-600 mb-3 line-clamp-2 text-sm">{{ video.description }}</p>
+                    {% endif %}
+                    
+                    <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
+                        <span class="flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                            {{ video.views }} views
+                        </span>
+                        <span class="flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            {{ video.created_at.strftime('%b %d, %Y') }}
+                        </span>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex space-x-2">
+                            {% if video.status == 'completed' %}
+                            <button onclick="window.open('/watch/{{ video.id }}-{{ video.slug or video.generate_slug() }}', '_blank')" 
+                                    class="px-3 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors">
+                                Watch
+                            </button>
+                            {% endif %}
+                            <button onclick="editVideo({{ video.id }})" 
+                                    class="px-3 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors">
+                                Edit
+                            </button>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2">
+                            <button onclick="toggleVideoVisibility({{ video.id }}, {{ video.public|lower }})" 
+                                    class="px-3 py-2 text-sm rounded-lg transition-colors {% if video.public %}bg-green-100 text-green-700 hover:bg-green-200{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                                {% if video.public %}Public{% else %}Private{% endif %}
+                            </button>
+                            <button onclick="deleteVideo({{ video.id }})" 
+                                    class="px-3 py-2 bg-red-100 text-red-700 text-sm rounded-lg hover:bg-red-200 transition-colors">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Empty State -->
+        {% if not videos %}
+        <div class="text-center py-16">
+            <div class="bg-gray-50 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
+                <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">No videos yet</h3>
+            <p class="text-gray-600 mb-6">Start creating amazing AI-generated videos to see them here!</p>
+            <a href="/" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white rounded-xl hover:from-secondary hover:to-primary transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                Create Your First Video
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Edit Video Modal -->
+<div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-2xl font-bold text-gray-900">Edit Video</h2>
+                    <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-6">
+                <form id="editVideoForm" class="space-y-6">
+                    <!-- Original Prompt (Read-only) -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Original Prompt</label>
+                        <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <p class="text-gray-700" id="originalPrompt"></p>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">This is the original prompt used to generate the video and cannot be changed.</p>
+                    </div>
+                    
+                    <!-- Title -->
+                    <div>
+                        <label for="editTitle" class="block text-sm font-semibold text-gray-700 mb-2">Video Title</label>
+                        <input 
+                            type="text" 
+                            id="editTitle" 
+                            name="title"
+                            placeholder="Enter a compelling title for your video"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            maxlength="200"
+                        >
+                        <p class="text-xs text-gray-500 mt-1">Keep it under 200 characters for best results.</p>
+                    </div>
+                    
+                    <!-- Description -->
+                    <div>
+                        <label for="editDescription" class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                        <textarea 
+                            id="editDescription" 
+                            name="description"
+                            rows="4"
+                            placeholder="Describe your video to help viewers understand what it's about"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                        ></textarea>
+                        <p class="text-xs text-gray-500 mt-1">Add relevant details, keywords, and context.</p>
+                    </div>
+                    
+                    <!-- Tags -->
+                    <div>
+                        <label for="editTags" class="block text-sm font-semibold text-gray-700 mb-2">Tags</label>
+                        <input 
+                            type="text" 
+                            id="editTags" 
+                            name="tags"
+                            placeholder="Enter tags separated by commas"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                        <p class="text-xs text-gray-500 mt-1">Add relevant tags to help people discover your video.</p>
+                    </div>
+                    
+                    <!-- Visibility Settings -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Visibility Settings</h3>
+                        
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div>
+                                <p class="font-medium text-gray-900">Public Video</p>
+                                <p class="text-sm text-gray-500">Anyone can view and share this video</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="editPublicToggle" name="public" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                            <div>
+                                <p class="font-medium text-gray-900">Allow Embedding</p>
+                                <p class="text-sm text-gray-500">Others can embed this video on their websites</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="editEmbedToggle" name="embed_enabled" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="p-6 border-t border-gray-200 flex justify-end space-x-3">
+                <button 
+                    onclick="closeEditModal()"
+                    class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                    Cancel
+                </button>
+                <button 
+                    onclick="saveVideoChanges()"
+                    class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                    id="saveVideoBtn"
+                >
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Toast -->
+<div id="toast" class="fixed top-20 bg-green-600 text-white px-6 py-4 rounded-lg shadow-xl border border-green-500 transform translate-x-full transition-all duration-300 z-50 max-w-sm" style="left: 50%; transform: translateX(-50%) translateX(100vw);">
+    <div class="flex items-center">
+        <svg class="w-6 h-6 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+        </svg>
+        <span id="toastMessage" class="font-medium">Action completed successfully!</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentEditingVideoId = null;
+let videos = {{ videos|tojson }};
+
+// Search and filter functionality
+document.getElementById('searchVideos').addEventListener('input', filterVideos);
+document.getElementById('statusFilter').addEventListener('change', filterVideos);
+document.getElementById('visibilityFilter').addEventListener('change', filterVideos);
+
+function filterVideos() {
+    const searchTerm = document.getElementById('searchVideos').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    const visibilityFilter = document.getElementById('visibilityFilter').value;
+    
+    const videoCards = document.querySelectorAll('.video-card');
+    
+    videoCards.forEach(card => {
+        const videoId = card.dataset.videoId;
+        const video = videos.find(v => v.id == videoId);
+        
+        if (!video) return;
+        
+        const title = (video.title || video.prompt || '').toLowerCase();
+        const description = (video.description || '').toLowerCase();
+        const matchesSearch = title.includes(searchTerm) || description.includes(searchTerm);
+        const matchesStatus = !statusFilter || video.status === statusFilter;
+        const matchesVisibility = !visibilityFilter || 
+            (visibilityFilter === 'public' && video.public) || 
+            (visibilityFilter === 'private' && !video.public);
+        
+        if (matchesSearch && matchesStatus && matchesVisibility) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+// Bulk selection functionality
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('video-checkbox')) {
+        updateBulkActions();
+    }
+});
+
+function updateBulkActions() {
+    const checkedBoxes = document.querySelectorAll('.video-checkbox:checked');
+    const bulkEditBtn = document.getElementById('bulkEditBtn');
+    const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+    
+    if (checkedBoxes.length > 0) {
+        bulkEditBtn.classList.remove('hidden');
+        bulkDeleteBtn.classList.remove('hidden');
+    } else {
+        bulkEditBtn.classList.add('hidden');
+        bulkDeleteBtn.classList.add('hidden');
+    }
+}
+
+// Video editing functions
+function editVideo(videoId) {
+    const video = videos.find(v => v.id == videoId);
+    if (!video) return;
+    
+    currentEditingVideoId = videoId;
+    
+    // Populate modal
+    document.getElementById('originalPrompt').textContent = video.prompt;
+    document.getElementById('editTitle').value = video.title || '';
+    document.getElementById('editDescription').value = video.description || '';
+    document.getElementById('editTags').value = video.tags ? video.tags.join(', ') : '';
+    document.getElementById('editPublicToggle').checked = video.public;
+    document.getElementById('editEmbedToggle').checked = video.embed_enabled;
+    
+    // Show modal
+    openEditModal();
+}
+
+function openEditModal() {
+    document.getElementById('editModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').classList.add('hidden');
+    document.body.style.overflow = 'auto';
+    currentEditingVideoId = null;
+}
+
+async function saveVideoChanges() {
+    if (!currentEditingVideoId) return;
+    
+    const authToken = localStorage.getItem('auth_token');
+    if (!authToken) {
+        showToast('Please log in to edit videos', 'error');
+        return;
+    }
+    
+    const saveBtn = document.getElementById('saveVideoBtn');
+    const originalText = saveBtn.innerHTML;
+    
+    // Show loading state
+    saveBtn.innerHTML = `
+        <svg class="animate-spin w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        Saving...
+    `;
+    saveBtn.disabled = true;
+    
+    try {
+        // Get form data
+        const title = document.getElementById('editTitle').value.trim();
+        const description = document.getElementById('editDescription').value.trim();
+        const tags = document.getElementById('editTags').value.trim();
+        const public = document.getElementById('editPublicToggle').checked;
+        const embedEnabled = document.getElementById('editEmbedToggle').checked;
+        
+        // Parse tags
+        const tagsArray = tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+        
+        const response = await fetch(`/api/videos/${currentEditingVideoId}/edit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+                title: title || null,
+                description: description || null,
+                tags: tagsArray,
+                public: public,
+                embed_enabled: embedEnabled
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            // Update local video data
+            const videoIndex = videos.findIndex(v => v.id == currentEditingVideoId);
+            if (videoIndex !== -1) {
+                videos[videoIndex] = { ...videos[videoIndex], ...data.video };
+            }
+            
+            // Update display
+            updateVideoCard(currentEditingVideoId, data.video);
+            
+            // Close modal
+            closeEditModal();
+            
+            // Show success message
+            showToast('Video updated successfully');
+            
+        } else {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to update video');
+        }
+        
+    } catch (error) {
+        console.error('Error saving video changes:', error);
+        showToast(error.message || 'Failed to save changes', 'error');
+    } finally {
+        // Restore button
+        saveBtn.innerHTML = originalText;
+        saveBtn.disabled = false;
+    }
+}
+
+function updateVideoCard(videoId, videoData) {
+    const card = document.querySelector(`[data-video-id="${videoId}"]`);
+    if (!card) return;
+    
+    // Update title
+    const titleElement = card.querySelector('h3');
+    titleElement.textContent = videoData.title || 'Untitled Video';
+    
+    // Update description
+    const descElement = card.querySelector('p');
+    if (descElement && videoData.description) {
+        descElement.textContent = videoData.description;
+    }
+    
+    // Update visibility badge
+    const visibilityBadge = card.querySelector('.absolute.top-2.right-2 span');
+    if (visibilityBadge) {
+        visibilityBadge.textContent = videoData.public ? 'Public' : 'Private';
+        visibilityBadge.className = videoData.public ? 
+            'bg-blue-500 text-white text-xs px-2 py-1 rounded-full' : 
+            'bg-gray-500 text-white text-xs px-2 py-1 rounded-full';
+    }
+    
+    // Update visibility button
+    const visibilityBtn = card.querySelector('button[onclick*="toggleVideoVisibility"]');
+    if (visibilityBtn) {
+        visibilityBtn.textContent = videoData.public ? 'Public' : 'Private';
+        visibilityBtn.className = `px-3 py-2 text-sm rounded-lg transition-colors ${videoData.public ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`;
+        visibilityBtn.onclick = () => toggleVideoVisibility(videoId, videoData.public);
+    }
+    
+    // Update data attributes
+    card.dataset.public = videoData.public.toString();
+}
+
+async function toggleVideoVisibility(videoId, currentPublic) {
+    const authToken = localStorage.getItem('auth_token');
+    if (!authToken) {
+        showToast('Please log in to change video visibility', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/videos/${videoId}/edit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ public: !currentPublic })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            // Update local video data
+            const videoIndex = videos.findIndex(v => v.id == videoId);
+            if (videoIndex !== -1) {
+                videos[videoIndex].public = data.video.public;
+            }
+            
+            // Update display
+            updateVideoCard(videoId, data.video);
+            
+            showToast(`Video ${data.video.public ? 'made public' : 'made private'}`);
+        } else {
+            throw new Error('Failed to update visibility');
+        }
+    } catch (error) {
+        console.error('Error toggling visibility:', error);
+        showToast('Failed to update visibility', 'error');
+    }
+}
+
+async function deleteVideo(videoId) {
+    if (!confirm('Are you sure you want to delete this video? This action cannot be undone.')) {
+        return;
+    }
+    
+    const authToken = localStorage.getItem('auth_token');
+    if (!authToken) {
+        showToast('Please log in to delete videos', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/videos/${videoId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+        
+        if (response.ok) {
+            // Remove from local data
+            videos = videos.filter(v => v.id != videoId);
+            
+            // Remove from DOM
+            const card = document.querySelector(`[data-video-id="${videoId}"]`);
+            if (card) {
+                card.remove();
+            }
+            
+            // Update stats
+            updateStats();
+            
+            showToast('Video deleted successfully');
+        } else {
+            throw new Error('Failed to delete video');
+        }
+    } catch (error) {
+        console.error('Error deleting video:', error);
+        showToast('Failed to delete video', 'error');
+    }
+}
+
+function updateStats() {
+    document.getElementById('totalVideos').textContent = videos.length;
+    document.getElementById('totalViews').textContent = videos.reduce((sum, v) => sum + (v.views || 0), 0);
+    document.getElementById('completedVideos').textContent = videos.filter(v => v.status === 'completed').length;
+    document.getElementById('processingVideos').textContent = videos.filter(v => ['pending', 'processing'].includes(v.status)).length;
+}
+
+// Toast function
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toastMessage');
+    
+    // Update message and styling
+    toastMessage.textContent = message;
+    
+    if (type === 'error') {
+        toast.className = 'fixed top-20 bg-red-600 text-white px-6 py-4 rounded-lg shadow-xl border border-red-500 transform translate-x-full transition-all duration-300 z-50 max-w-sm';
+        toast.style.left = '50%';
+        toast.style.transform = 'translateX(-50%) translateX(100vw)';
+    } else {
+        toast.className = 'fixed top-20 bg-green-600 text-white px-6 py-4 rounded-lg shadow-xl border border-green-500 transform translate-x-full transition-all duration-300 z-50 max-w-sm';
+        toast.style.left = '50%';
+        toast.style.transform = 'translateX(-50%) translateX(100vw)';
+    }
+    
+    // Show toast
+    setTimeout(() => {
+        toast.style.transform = 'translateX(-50%) translateX(0)';
+    }, 100);
+    
+    // Hide toast after 3 seconds
+    setTimeout(() => {
+        toast.style.transform = 'translateX(-50%) translateX(100vw)';
+    }, 3000);
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    // Close modal when clicking outside
+    document.getElementById('editModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeEditModal();
+        }
+    });
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeEditModal();
+        }
+    });
+    
+    // Add hover effect to show checkboxes
+    document.querySelectorAll('.video-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.querySelector('.video-checkbox').style.opacity = '1';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            if (!this.querySelector('.video-checkbox').checked) {
+                this.querySelector('.video-checkbox').style.opacity = '0';
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

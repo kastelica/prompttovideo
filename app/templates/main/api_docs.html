@@ -1,0 +1,394 @@
+{% extends "base.html" %}
+
+{% block title %}API Documentation - PromptToVideo{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <h1 class="text-3xl font-bold text-gray-900">API Documentation</h1>
+                <a href="{{ url_for('main.dashboard') }}" class="text-blue-600 hover:text-blue-700">← Back to Dashboard</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Introduction -->
+        <div class="bg-white rounded-lg shadow p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Getting Started</h2>
+            <p class="text-gray-600 mb-4">
+                The PromptToVideo API allows you to programmatically generate AI videos, check status, and manage your account. 
+                All API requests require authentication using a Bearer token.
+            </p>
+            
+            <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                <h3 class="font-semibold text-gray-900 mb-2">Base URL</h3>
+                <code class="text-sm bg-white px-2 py-1 rounded border">https://prompttovideo.com</code>
+            </div>
+            
+            <div class="bg-gray-50 rounded-lg p-4">
+                <h3 class="font-semibold text-gray-900 mb-2">Authentication</h3>
+                <p class="text-sm text-gray-600 mb-2">Include your API token in the Authorization header:</p>
+                <code class="text-sm bg-white px-2 py-1 rounded border">Authorization: Bearer YOUR_TOKEN_HERE</code>
+            </div>
+        </div>
+
+        <!-- Rate Limits -->
+        <div class="bg-white rounded-lg shadow p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Rate Limits</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subscription Tier</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Daily API Calls</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reset Time</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Free</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10 calls/day</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Daily at midnight UTC</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Basic</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">100 calls/day</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Daily at midnight UTC</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Pro</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1,000 calls/day</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Daily at midnight UTC</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Enterprise</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Unlimited</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">N/A</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Endpoints -->
+        <div class="space-y-8">
+            <!-- Generate Video -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center mb-4">
+                    <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded mr-3">POST</span>
+                    <h2 class="text-xl font-bold text-gray-900">Generate Video</h2>
+                </div>
+                <code class="text-sm bg-gray-50 px-2 py-1 rounded mb-4 block">/api/v1/generate</code>
+                
+                <div class="mb-4">
+                    <h3 class="font-semibold text-gray-900 mb-2">Request Body</h3>
+                    <pre class="bg-gray-50 p-4 rounded text-sm overflow-x-auto"><code>{
+  "prompt": "A beautiful sunset over the ocean",
+  "quality": "free"  // or "premium"
+}</code></pre>
+                </div>
+                
+                <div class="mb-4">
+                    <h3 class="font-semibold text-gray-900 mb-2">Response</h3>
+                    <pre class="bg-gray-50 p-4 rounded text-sm overflow-x-auto"><code>{
+  "success": true,
+  "video_id": 123,
+  "status": "pending",
+  "credits_remaining": 15,
+  "queue_position": 5,
+  "estimated_wait_time": 25
+}</code></pre>
+                </div>
+                
+                <div class="mb-4">
+                    <h3 class="font-semibold text-gray-900 mb-2">Error Responses</h3>
+                    <div class="space-y-2">
+                        <div class="text-sm">
+                            <span class="font-medium text-red-600">401 Unauthorized:</span> Invalid or missing token
+                        </div>
+                        <div class="text-sm">
+                            <span class="font-medium text-red-600">402 Payment Required:</span> Insufficient credits
+                        </div>
+                        <div class="text-sm">
+                            <span class="font-medium text-red-600">429 Too Many Requests:</span> Rate limit exceeded
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video Status -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center mb-4">
+                    <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded mr-3">GET</span>
+                    <h2 class="text-xl font-bold text-gray-900">Get Video Status</h2>
+                </div>
+                <code class="text-sm bg-gray-50 px-2 py-1 rounded mb-4 block">/api/v1/video/{video_id}/status</code>
+                
+                <div class="mb-4">
+                    <h3 class="font-semibold text-gray-900 mb-2">Response</h3>
+                    <pre class="bg-gray-50 p-4 rounded text-sm overflow-x-auto"><code>{
+  "video_id": 123,
+  "status": "completed",
+  "prompt": "A beautiful sunset over the ocean",
+  "quality": "free",
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-15T10:35:00Z",
+  "video_url": "https://storage.googleapis.com/...",
+  "duration": 30,
+  "thumbnail_url": "https://storage.googleapis.com/...",
+  "completed_at": "2024-01-15T10:35:00Z"
+}</code></pre>
+                </div>
+                
+                <div class="mb-4">
+                    <h3 class="font-semibold text-gray-900 mb-2">Status Values</h3>
+                    <div class="space-y-1 text-sm">
+                        <div><span class="font-medium">pending:</span> Video is in queue</div>
+                        <div><span class="font-medium">processing:</span> Video is being generated</div>
+                        <div><span class="font-medium">completed:</span> Video is ready</div>
+                        <div><span class="font-medium">failed:</span> Video generation failed</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- List Videos -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center mb-4">
+                    <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded mr-3">GET</span>
+                    <h2 class="text-xl font-bold text-gray-900">List Videos</h2>
+                </div>
+                <code class="text-sm bg-gray-50 px-2 py-1 rounded mb-4 block">/api/v1/videos?page=1&per_page=20&status=completed</code>
+                
+                <div class="mb-4">
+                    <h3 class="font-semibold text-gray-900 mb-2">Query Parameters</h3>
+                    <div class="space-y-1 text-sm">
+                        <div><span class="font-medium">page:</span> Page number (default: 1)</div>
+                        <div><span class="font-medium">per_page:</span> Items per page, max 100 (default: 20)</div>
+                        <div><span class="font-medium">status:</span> Filter by status (pending, processing, completed, failed)</div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <h3 class="font-semibold text-gray-900 mb-2">Response</h3>
+                    <pre class="bg-gray-50 p-4 rounded text-sm overflow-x-auto"><code>{
+  "videos": [
+    {
+      "id": 123,
+      "prompt": "A beautiful sunset over the ocean",
+      "quality": "360p",
+      "status": "completed",
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T10:35:00Z",
+      "video_url": "https://storage.googleapis.com/...",
+      "duration": 30,
+      "thumbnail_url": "https://storage.googleapis.com/..."
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "per_page": 20,
+    "total": 45,
+    "pages": 3,
+    "has_next": true,
+    "has_prev": false
+  }
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- Account Info -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center mb-4">
+                    <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded mr-3">GET</span>
+                    <h2 class="text-xl font-bold text-gray-900">Get Account Information</h2>
+                </div>
+                <code class="text-sm bg-gray-50 px-2 py-1 rounded mb-4 block">/api/v1/account</code>
+                
+                <div class="mb-4">
+                    <h3 class="font-semibold text-gray-900 mb-2">Response</h3>
+                    <pre class="bg-gray-50 p-4 rounded text-sm overflow-x-auto"><code>{
+  "user_id": 456,
+  "email": "user@example.com",
+  "credits": 25,
+  "subscription_tier": "pro",
+  "rate_limit_info": {
+    "tier": "pro",
+    "limit": 1000,
+    "used": 45,
+    "remaining": 955,
+    "reset_time": "2024-01-16T00:00:00Z"
+  },
+  "created_at": "2024-01-01T00:00:00Z"
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- Queue Status -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center mb-4">
+                    <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded mr-3">GET</span>
+                    <h2 class="text-xl font-bold text-gray-900">Get Queue Status</h2>
+                </div>
+                <code class="text-sm bg-gray-50 px-2 py-1 rounded mb-4 block">/api/v1/queue/status</code>
+                
+                <div class="mb-4">
+                    <h3 class="font-semibold text-gray-900 mb-2">Response</h3>
+                    <pre class="bg-gray-50 p-4 rounded text-sm overflow-x-auto"><code>{
+  "user_videos": [
+    {
+      "video_id": 123,
+      "prompt": "A beautiful sunset over the ocean...",
+      "quality": "360p",
+      "position": 5,
+      "estimated_wait_minutes": 25,
+      "queued_at": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "queue_stats": {
+    "total_pending": 45,
+    "currently_processing": 3,
+    "user_pending_count": 2
+  }
+}</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Code Examples -->
+        <div class="bg-white rounded-lg shadow p-6 mt-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Code Examples</h2>
+            
+            <div class="space-y-6">
+                <!-- Python -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Python</h3>
+                    <pre class="bg-gray-50 p-4 rounded text-sm overflow-x-auto"><code>import requests
+
+API_TOKEN = "your_token_here"
+BASE_URL = "https://prompttovideo.com"
+
+headers = {
+    "Authorization": f"Bearer {API_TOKEN}",
+    "Content-Type": "application/json"
+}
+
+# Generate a video
+response = requests.post(f"{BASE_URL}/api/v1/generate", 
+    headers=headers,
+    json={
+        "prompt": "A beautiful sunset over the ocean",
+        "quality": "free"
+    }
+)
+
+if response.status_code == 200:
+    data = response.json()
+    video_id = data["video_id"]
+    print(f"Video {video_id} queued for generation")
+    
+    # Check status
+    status_response = requests.get(f"{BASE_URL}/api/v1/video/{video_id}/status", 
+        headers=headers
+    )
+    print(status_response.json())
+else:
+    print(f"Error: {response.status_code} - {response.text}")</code></pre>
+                </div>
+
+                <!-- JavaScript -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">JavaScript</h3>
+                    <pre class="bg-gray-50 p-4 rounded text-sm overflow-x-auto"><code>const API_TOKEN = "your_token_here";
+const BASE_URL = "https://prompttovideo.com";
+
+const headers = {
+    "Authorization": `Bearer ${API_TOKEN}`,
+    "Content-Type": "application/json"
+};
+
+// Generate a video
+async function generateVideo(prompt, quality = "free") {
+    try {
+        const response = await fetch(`${BASE_URL}/api/v1/generate`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ prompt, quality })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            return data.video_id;
+        } else {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+    } catch (error) {
+        console.error("Error generating video:", error);
+    }
+}
+
+// Check video status
+async function checkVideoStatus(videoId) {
+    try {
+        const response = await fetch(`${BASE_URL}/api/v1/video/${videoId}/status`, {
+            headers
+        });
+        
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (error) {
+        console.error("Error checking status:", error);
+    }
+}
+
+// Usage
+generateVideo("A beautiful sunset over the ocean").then(videoId => {
+    console.log(`Video ${videoId} queued for generation`);
+});</code></pre>
+                </div>
+
+                <!-- cURL -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">cURL</h3>
+                    <pre class="bg-gray-50 p-4 rounded text-sm overflow-x-auto"><code># Generate a video
+curl -X POST https://prompttovideo.com/api/v1/generate \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "A beautiful sunset over the ocean",
+    "quality": "free"
+  }'
+
+# Check video status
+curl -X GET https://prompttovideo.com/api/v1/video/123/status \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+
+# List videos
+curl -X GET "https://prompttovideo.com/api/v1/videos?page=1&per_page=20" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE"</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Support -->
+        <div class="bg-blue-50 rounded-lg p-6 mt-8">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Need Help?</h2>
+            <p class="text-gray-600 mb-4">
+                If you need assistance with the API or have questions about integration, 
+                please don't hesitate to reach out to our support team.
+            </p>
+            <div class="flex space-x-4">
+                <a href="mailto:support@prompttovideo.com" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    Contact Support
+                </a>
+                <a href="{{ url_for('main.dashboard') }}" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+                    Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

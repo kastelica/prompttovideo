@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+
+{% block title %}Credit Packs - PromptToVideo{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Choose Your Credit Pack</h1>
+            <p class="text-xl text-gray-600">Get more credits to create amazing videos</p>
+        </div>
+
+        <!-- Free Trial Offer -->
+        <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl shadow-lg p-8 mb-12 border border-green-200">
+            <div class="text-center">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">🎬 FREE Trial Video!</h2>
+                <p class="text-lg text-gray-700 mb-6">Get your first 8-second AI video absolutely FREE - worth $10!</p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <div class="bg-white rounded-lg px-6 py-3 shadow-md">
+                        <span class="text-2xl font-bold text-green-600">$0.00</span>
+                        <span class="text-gray-600 ml-2">for first video</span>
+                    </div>
+                    <div class="text-gray-500">
+                        <span class="line-through">Regular price: $10</span>
+                    </div>
+                    <a href="{{ url_for('main.index') }}#generateVideoSection" class="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold">
+                        Start Free Trial
+                    </a>
+                </div>
+                <p class="text-sm text-gray-500 mt-4">No credit card required • No commitment • Instant access</p>
+            </div>
+        </div>
+
+        <!-- Current Credits -->
+        {% if user %}
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-semibold text-gray-900">Your Credits</h2>
+                    <p class="text-gray-600">Available credits for video generation</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-4xl font-bold text-primary">{{ user.credits }}</p>
+                    <p class="text-sm text-gray-500">credits remaining</p>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="text-center">
+                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Get Started Today</h2>
+                <p class="text-gray-600 mb-4">Create an account to start generating amazing videos</p>
+                <div class="space-x-4">
+                    <a href="{{ url_for('auth.register_page') }}" class="bg-primary text-white px-6 py-2 rounded-md hover:bg-secondary">
+                        Sign Up
+                    </a>
+                    <a href="{{ url_for('auth.login_page') }}" class="bg-gray-100 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-200">
+                        Log In
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Credit Packs -->
+        <div class="grid md:grid-cols-3 gap-8 mb-12">
+            <!-- Starter Pack -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="p-6">
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">Starter Pack</h3>
+                    <p class="text-gray-600 mb-4">Perfect for getting started</p>
+                    <div class="text-3xl font-bold text-primary mb-4">$29.99</div>
+                    <ul class="space-y-2 mb-6">
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            5 Free tier videos (8 seconds)
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            Veo 2 AI generation
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            High-quality AI generation
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            $6/video (40% savings)
+                        </li>
+                    </ul>
+                    {% if user %}
+                    <button onclick="purchasePack('starter')" class="w-full bg-primary text-white py-3 px-4 rounded-md hover:bg-secondary transition-colors">
+                        Purchase Starter Pack
+                    </button>
+                    {% else %}
+                    <a href="{{ url_for('auth.register_page') }}" class="w-full bg-primary text-white py-3 px-4 rounded-md hover:bg-secondary transition-colors inline-block text-center">
+                        Sign Up to Purchase
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Pro Pack -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden border-2 border-primary">
+                <div class="bg-primary text-white text-center py-2">
+                    <span class="text-sm font-semibold">MOST POPULAR</span>
+                </div>
+                <div class="p-6">
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">Pro Pack</h3>
+                    <p class="text-gray-600 mb-4">Best value for creators</p>
+                    <div class="text-3xl font-bold text-primary mb-4">$99.99</div>
+                    <ul class="space-y-2 mb-6">
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            20 Free tier videos (8 seconds)
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            Veo 2 AI generation
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            Premium AI models
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            $5/video (50% savings)
+                        </li>
+                    </ul>
+                    {% if user %}
+                    <button onclick="purchasePack('pro')" class="w-full bg-primary text-white py-3 px-4 rounded-md hover:bg-secondary transition-colors">
+                        Purchase Pro Pack
+                    </button>
+                    {% else %}
+                    <a href="{{ url_for('auth.register_page') }}" class="w-full bg-primary text-white py-3 px-4 rounded-md hover:bg-secondary transition-colors inline-block text-center">
+                        Sign Up to Purchase
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Enterprise Pack -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="p-6">
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">Enterprise Monthly</h3>
+                    <p class="text-gray-600 mb-4">For heavy users</p>
+                    <div class="text-3xl font-bold text-primary mb-4">$199<span class="text-lg text-gray-500">/month</span></div>
+                    <ul class="space-y-2 mb-6">
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            50 Free tier videos/month (8 seconds)
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            Veo 2 AI generation
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            Priority processing
+                        </li>
+                        <li class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            $4/video (60% savings)
+                        </li>
+                    </ul>
+                    {% if user %}
+                    <button onclick="purchasePack('enterprise')" class="w-full bg-primary text-white py-3 px-4 rounded-md hover:bg-secondary transition-colors">
+                        Start Enterprise
+                    </button>
+                    {% else %}
+                    <a href="{{ url_for('auth.register_page') }}" class="w-full bg-primary text-white py-3 px-4 rounded-md hover:bg-secondary transition-colors inline-block text-center">
+                        Sign Up to Purchase
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Pricing Info -->
+        <div class="bg-white rounded-lg shadow-md p-8 mb-8">
+            <h2 class="text-2xl font-semibold text-center text-gray-900 mb-6">How Our Pricing Works</h2>
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div>
+                    <div class="space-y-4">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                            <span class="text-gray-700"><strong>Free tier: 8-second videos</strong> - Perfect for social media</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                            <span class="text-gray-700"><strong>Premium tier: 60-second videos</strong> - With audio and enhanced quality</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
+                            <span class="text-gray-700"><strong>No hidden fees</strong> - What you see is what you pay</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
+                            <span class="text-gray-700"><strong>Credits never expire</strong> - Use at your own pace</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <h3 class="font-semibold text-gray-900 mb-4">Cost Breakdown</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span>Free tier video (8 seconds):</span>
+                            <span class="font-semibold">$10.00</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Premium tier video (60 seconds):</span>
+                            <span class="font-semibold">$30.00</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Starter Pack (5 free videos):</span>
+                            <span class="font-semibold text-green-600">$6.00 each</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Pro Pack (20 free videos):</span>
+                            <span class="font-semibold text-green-600">$5.00 each</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Enterprise (50 free videos/month):</span>
+                            <span class="font-semibold text-green-600">$4.00 each</span>
+                        </div>
+                        <hr class="my-2">
+                        <div class="flex justify-between text-lg font-bold">
+                            <span>Your savings:</span>
+                            <span class="text-green-600">Up to 60%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Purchase History -->
+        {% if user %}
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">Purchase History</h2>
+            <div id="purchaseHistory" class="space-y-4">
+                <!-- Purchase history will be loaded here -->
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div id="loadingModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 flex items-center space-x-4">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <p class="text-gray-700">Processing payment...</p>
+    </div>
+</div>
+
+<script>
+async function purchasePack(packId) {
+    const loadingModal = document.getElementById('loadingModal');
+    loadingModal.classList.remove('hidden');
+    
+    try {
+        const response = await fetch('/payments/create-checkout-session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            },
+            body: JSON.stringify({ pack_id: packId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.checkout_url) {
+            // Redirect to Stripe checkout
+            window.location.href = data.checkout_url;
+        } else {
+            throw new Error(data.error || 'Failed to create checkout session');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        let errorMessage = 'Failed to process payment. Please try again.';
+        
+        if (error.message) {
+            errorMessage = error.message;
+        }
+        
+        alert(errorMessage);
+        loadingModal.classList.add('hidden');
+    }
+}
+
+async function loadPurchaseHistory() {
+    try {
+        const response = await fetch('/payments/purchase-history', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            }
+        });
+        
+        const data = await response.json();
+        const historyContainer = document.getElementById('purchaseHistory');
+        
+        if (data.purchases && data.purchases.length > 0) {
+            historyContainer.innerHTML = data.purchases.map(purchase => `
+                <div class="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                        <p class="font-semibold">${purchase.description}</p>
+                        <p class="text-sm text-gray-500">${new Date(purchase.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-semibold text-green-600">+${purchase.amount} credits</p>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            historyContainer.innerHTML = '<p class="text-gray-500">No purchase history yet.</p>';
+        }
+    } catch (error) {
+        console.error('Error loading purchase history:', error);
+    }
+}
+
+// Load purchase history on page load if user is authenticated
+document.addEventListener('DOMContentLoaded', function() {
+    {% if user %}
+    loadPurchaseHistory();
+    {% endif %}
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,1357 @@
+{% extends "base.html" %}
+
+{% block title %}Prompt Videos AI Video Generation{% endblock %}
+
+{% block content %}
+<div class="text-center mb-8 md:mb-12 px-4">
+    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+        Prompt Videos AI
+    </h1>
+    <p class="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto mb-6">
+        Create <span id="adjective-ticker" class="text-primary font-semibold transition-all duration-300">stunning</span> videos from text prompts using advanced AI technology
+    </p>
+   
+    <div class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
+    <a href="#generateVideoSection" 
+       class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-300 hover:scale-105 hover:shadow-lg">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+        </svg>
+        Generate Video
+        </a>
+        <a href="{{ url_for('main.dashboard') }}" 
+           class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 dark:border-dark-600 text-base font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-800 hover:bg-gray-50 dark:hover:bg-dark-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors">
+            Go to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Video Generation Form -->
+<div id="generateVideoSection" class="bg-white dark:bg-dark-800 rounded-lg shadow-lg p-4 md:p-6 mb-6 md:mb-8 mx-4 md:mx-0 border-2 border-transparent hover:border-primary transition-all duration-500 relative overflow-hidden group">
+    <!-- Welcoming background effect -->
+    <div class="absolute inset-0 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 dark:from-blue-900/20 dark:via-purple-900/20 dark:to-pink-900/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+    <div class="relative z-10">
+        <div class="flex items-center mb-4 md:mb-6">
+            <div class="w-3 h-3 bg-green-400 rounded-full animate-pulse mr-3"></div>
+            <h2 class="text-xl md:text-2xl font-semibold text-gray-900 dark:text-gray-100">Generate Your Video</h2>
+            <div class="ml-auto">
+                <div class="flex space-x-1">
+                    <div class="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
+                    <div class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                    <div class="w-2 h-2 bg-primary rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                </div>
+            </div>
+        </div>
+    
+    <form id="generateForm" class="space-y-4">
+        <div>
+            <label for="prompt" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Describe your video
+            </label>
+            <div class="relative group">
+                <textarea 
+                    id="prompt" 
+                    name="prompt" 
+                    rows="4" 
+                    class="w-full px-3 py-2 pr-28 border border-gray-300 dark:border-dark-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-300 hover:border-primary hover:shadow-md bg-white dark:bg-dark-700 text-gray-900 dark:text-gray-200"
+                    placeholder="A beautiful sunset over the ocean with gentle waves..."
+                    required
+                ></textarea>
+                <!-- Floating label effect -->
+                <div class="absolute -top-2 left-2 bg-white dark:bg-dark-700 px-1 text-xs text-primary opacity-0 group-focus-within:opacity-100 transition-opacity duration-300">
+                    ✨ Let your creativity flow
+                </div>
+                <button 
+                    type="button" 
+                    id="suggestBtn"
+                    class="absolute top-2 right-2 bg-blue-500 text-white px-2 md:px-3 py-1 rounded-md text-xs md:text-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors z-10"
+                    title="Get AI-generated prompt suggestions"
+                >
+                    <svg class="w-3 h-3 md:w-4 md:h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                    </svg>
+                    <span class="hidden sm:inline">AI Suggest</span>
+                    <span class="sm:hidden">AI</span>
+                </button>
+            </div>
+            <div id="suggestionStatus" class="hidden mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md text-sm">
+                <div class="flex items-center">
+                    <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500 mr-2"></div>
+                    <span class="text-gray-900 dark:text-gray-100">Generating AI suggestions...</span>
+                </div>
+            </div>
+            <div id="suggestions" class="hidden mt-2 space-y-2">
+                <!-- AI suggestions will be populated here -->
+            </div>
+        </div>
+        
+        <div>
+            <label for="quality" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Video Quality
+            </label>
+            <select 
+                id="quality" 
+                name="quality" 
+                class="w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-300 hover:border-primary hover:shadow-md bg-white dark:bg-dark-700 text-gray-900 dark:text-gray-200"
+            >
+                <option value="free">Free - 8 seconds, with watermark, no audio</option>
+                <option value="premium">Premium - 60 seconds, no watermark, with audio</option>
+            </select>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+            <div class="text-sm text-gray-600 dark:text-gray-400">
+                <span id="creditCost">Cost: 1 credit</span>
+                <div id="freeCreditInfo" class="text-xs text-green-600 dark:text-green-400 hidden">
+                    <span>✓ Free credit available</span>
+                </div>
+            </div>
+            <button 
+                type="submit" 
+                class="w-full sm:w-auto bg-primary text-white px-6 py-3 rounded-md hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-all duration-300 hover:scale-105 hover:shadow-lg group"
+                id="generateBtn"
+            >
+                <div class="flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2 group-hover:animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                Generate Video
+                    <span class="ml-2 group-hover:animate-bounce">🎬</span>
+                </div>
+            </button>
+        </div>
+    </form>
+    
+    <div id="generationStatus" class="hidden mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+        <div class="flex items-center">
+            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-3"></div>
+            <span id="statusText" class="text-gray-900 dark:text-gray-100">Generating your video...</span>
+        </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Featured Videos -->
+{% if featured_videos %}
+<div class="bg-white dark:bg-dark-800 rounded-lg shadow-md p-4 md:p-6 mb-6 md:mb-8 mx-4 md:mx-0">
+    <h2 class="text-xl md:text-2xl font-semibold mb-4 md:mb-6 text-gray-900 dark:text-gray-100">Featured Videos</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        {% for video in featured_videos %}
+        <div class="border border-gray-200 dark:border-dark-700 rounded-lg overflow-hidden hover:shadow-lg transition-shadow bg-white dark:bg-dark-700" data-video-id="{{ video.id }}" data-video-prompt="{{ video.prompt }}" data-video-date="{{ video.created_at.strftime('%B %d, %Y') }}">
+            <a href="{{ url_for('main.watch_video', video_id=video.id, slug=video.slug or video.generate_slug()) }}" class="block">
+                <div class="bg-gray-200 h-32 sm:h-48 relative overflow-hidden">
+                    {% if video.status == 'completed' %}
+                        {% if video.thumbnail_url %}
+                            <!-- Show thumbnail if available -->
+                            <img src="{{ video.thumbnail_url }}" 
+                                 alt="{{ video.get_seo_title() }}" 
+                                 class="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                                 loading="lazy"
+                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlZpZGVvPC90ZXh0Pjwvc3ZnPg=='">
+                        {% elif video.gcs_signed_url %}
+                            <!-- GCS video - simple approach with poster -->
+                            <video 
+                                src="{{ video.gcs_signed_url }}" 
+                                poster="{{ video.gcs_signed_url }}#t=0.1"
+                                class="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                                preload="metadata"
+                                muted
+                                playsinline
+                                style="pointer-events: none;"
+                                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            </video>
+                            <!-- Fallback placeholder if video fails to load -->
+                            <div class="w-full h-full bg-gray-300 dark:bg-dark-600 flex items-center justify-center relative overflow-hidden hidden" 
+                                 style="background: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f0f0f0 75%), linear-gradient(-45deg, transparent 75%, #f0f0f0 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;">
+                                <svg class="w-8 h-8 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z"/>
+                                </svg>
+                                <!-- Video prompt overlay -->
+                                <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 text-xs">
+                                    {{ video.prompt[:30] }}{% if video.prompt|length > 30 %}...{% endif %}
+                                </div>
+                            </div>
+                        {% else %}
+                            <!-- Fallback to generic video placeholder -->
+                            <div class="w-full h-full bg-gray-300 dark:bg-dark-600 flex items-center justify-center" 
+                                 style="background: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f0f0f0 75%), linear-gradient(-45deg, transparent 75%, #f0f0f0 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;">
+                                <svg class="w-8 h-8 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z"/>
+                                </svg>
+                                <!-- Video prompt overlay -->
+                                <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 text-xs">
+                                    {{ video.prompt[:30] }}{% if video.prompt|length > 30 %}...{% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Play button overlay -->
+                        <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 hover:bg-opacity-30 transition-all duration-200">
+                            <div class="bg-white dark:bg-dark-700 bg-opacity-90 rounded-full p-2 sm:p-3">
+                                <svg class="w-4 h-4 sm:w-6 sm:h-6 text-gray-800 dark:text-gray-200" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        <!-- Chat icon overlay -->
+                        <div class="absolute bottom-2 right-2">
+                            <button 
+                                onclick="openVideoChat({{ video.id }}, event)"
+                                class="bg-blue-500 bg-opacity-90 hover:bg-blue-600 text-white rounded-full p-2 transition-all duration-200 hover:scale-110 z-10"
+                                title="Chat about this video"
+                            >
+                                <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        {% if video.quality == 'free' %}
+                        <!-- Watermark Overlay -->
+                        <div class="absolute inset-0 pointer-events-none">
+                            <div class="absolute top-1 right-1 sm:top-2 sm:right-2 bg-black bg-opacity-75 text-white px-1 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-medium">
+                                Free
+                            </div>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="text-white text-opacity-15 text-lg sm:text-2xl font-bold transform -rotate-12 select-none">
+                                    PromptToVideo
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <!-- Loading/processing state -->
+                        <div class="w-full h-full flex items-center justify-center">
+                            {% if video.status == 'processing' %}
+                                <div class="text-center">
+                                    <div class="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                                    <span class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">Processing...</span>
+                                </div>
+                            {% elif video.status == 'pending' %}
+                                <div class="text-center">
+                                    <div class="animate-pulse rounded-full h-6 w-6 sm:h-8 sm:w-8 bg-gray-300 mx-auto mb-2"></div>
+                                    <span class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">Queued...</span>
+                                </div>
+                            {% else %}
+                                <span class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">Video Preview</span>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="p-3 md:p-4">
+                    <h3 class="font-medium text-gray-900 dark:text-gray-100 mb-2 line-clamp-2 text-sm md:text-base">{{ video.prompt[:60] }}{% if video.prompt|length > 60 %}...{% endif %}</h3>
+                    <div class="flex items-center justify-between text-xs md:text-sm text-gray-600 dark:text-gray-400">
+                        <span>{{ video.views }} views</span>
+                        <span>{{ video.quality }}</span>
+                    </div>
+                    {% if video.user %}
+                    <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                        by {{ video.user.email }}
+                    </div>
+                    {% endif %}
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Prompt Packs -->
+{% if prompt_packs %}
+        <div class="bg-white dark:bg-dark-800 rounded-lg shadow-md p-4 md:p-6 mx-4 md:mx-0">
+    <h2 class="text-xl md:text-2xl font-semibold mb-4 md:mb-6 text-gray-900 dark:text-gray-100">Prompt Packs</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        {% for pack in prompt_packs %}
+        <div class="border border-gray-200 dark:border-dark-700 rounded-lg p-3 md:p-4 hover:shadow-md transition-shadow bg-white dark:bg-dark-700">
+            <div class="flex items-start justify-between mb-2 md:mb-3">
+                <h3 class="font-medium text-gray-900 dark:text-gray-100 text-sm md:text-base">{{ pack.name }}</h3>
+                {% if pack.featured %}
+                <span class="bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 px-2 py-1 rounded-full text-xs font-medium">
+                    Featured
+                </span>
+                {% endif %}
+            </div>
+            <p class="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-2 md:mb-3">{{ pack.description }}</p>
+            
+            {% if pack.category %}
+            <div class="mb-2 md:mb-3">
+                <span class="inline-block bg-gray-100 dark:bg-dark-600 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-full text-xs">
+                    {{ pack.category }}
+                </span>
+            </div>
+            {% endif %}
+            
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                <span class="text-xs text-gray-500 dark:text-gray-400">{{ pack.prompts|length if pack.prompts else 0 }} prompts</span>
+                <div class="flex gap-2">
+                    <a href="{{ url_for('main.view_prompt_pack', pack_id=pack.id) }}" 
+                       class="text-primary hover:text-secondary text-xs md:text-sm font-medium">
+                        View Prompts
+                    </a>
+                    <button onclick="previewPack('{{ pack.id }}')" 
+                            class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-xs md:text-sm">
+                        Preview
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Chat Slideout Panel -->
+<div id="chatSlideout" class="fixed inset-y-0 right-0 w-96 bg-white dark:bg-dark-800 shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out z-50 border-l border-gray-200 dark:border-dark-700">
+    <div class="flex flex-col h-full">
+        <!-- Chat Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 flex items-center justify-between shadow-lg">
+            <div class="flex items-center space-x-3 flex-1 min-w-0">
+                <div class="w-3 h-3 bg-green-400 rounded-full animate-pulse flex-shrink-0"></div>
+                <div class="min-w-0 flex-1">
+                    <h3 class="font-semibold text-lg leading-tight break-words" id="chatVideoTitle" title="">Loading...</h3>
+                    <div class="flex items-center space-x-4 text-blue-100 text-sm mt-1">
+                        <span id="chatVideoViews">0 views</span>
+                        <span id="chatVideoDate">• Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <button onclick="closeChatSlideout()" class="text-white hover:text-blue-200 transition-colors p-1 rounded-full hover:bg-white hover:bg-opacity-20 flex-shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        
+        <!-- Chat Messages -->
+        <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-gray-50 to-white dark:from-dark-900 dark:to-dark-800">
+            <div class="text-center text-gray-500 dark:text-gray-400 py-12">
+                <div class="bg-white dark:bg-dark-700 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center shadow-sm">
+                    <svg class="w-8 h-8 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                    </svg>
+                </div>
+                <p class="font-medium text-gray-700 dark:text-gray-300 mb-1">Start the conversation!</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Share your thoughts about this video</p>
+            </div>
+        </div>
+        
+        <!-- Chat Input -->
+        <div class="border-t border-gray-200 dark:border-dark-700 p-4 bg-white dark:bg-dark-800 shadow-lg">
+            <form id="chatForm" class="flex space-x-3">
+                <div class="flex-1 relative">
+                    <textarea
+                        id="chatInput"
+                        placeholder="Share your thoughts about this video..."
+                        class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200 bg-white dark:bg-dark-700 text-gray-900 dark:text-gray-200"
+                        rows="2"
+                        maxlength="500"
+                    ></textarea>
+                    <div class="absolute bottom-2 right-2 text-xs text-gray-400 dark:text-gray-500 bg-white dark:bg-dark-700 px-1 rounded" id="chatCharCount">0/500</div>
+                </div>
+                <button
+                    type="submit"
+                    class="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-3 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 shadow-md"
+                    id="chatSendBtn"
+                >
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Chat Backdrop -->
+<div id="chatBackdrop" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden" onclick="closeChatSlideout()"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if user is logged in and get auth token
+    const authToken = localStorage.getItem('auth_token');
+    console.log('🔑 SCRIPT: Auth token available:', authToken ? 'YES' : 'NO');
+    console.log('🔑 SCRIPT: Auth token length:', authToken ? authToken.length : 0);
+    
+    if (!authToken) {
+        console.log('❌ SCRIPT: No auth token - showing login prompt');
+        // Show login prompt or redirect to login
+        const loginPrompt = document.createElement('div');
+        loginPrompt.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        loginPrompt.innerHTML = `
+            <div class="bg-white rounded-lg p-8 max-w-md mx-4 text-center">
+                <h2 class="text-2xl font-bold mb-4">Login Required</h2>
+                <p class="text-gray-600 mb-6">Please log in to generate videos.</p>
+                <div class="space-y-3">
+                    <a href="/auth/login-page" class="block w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-secondary transition-colors">
+                        Log In
+                    </a>
+                    <a href="/auth/register-page" class="block w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 transition-colors">
+                        Sign Up
+                    </a>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(loginPrompt);
+        return;
+    }
+    
+    console.log('✅ SCRIPT: Auth token found, proceeding with setup');
+    
+    const form = document.getElementById('generateForm');
+    const qualitySelect = document.getElementById('quality');
+    const creditCost = document.getElementById('creditCost');
+    const generateBtn = document.getElementById('generateBtn');
+    const generationStatus = document.getElementById('generationStatus');
+    const statusText = document.getElementById('statusText');
+    const suggestBtn = document.getElementById('suggestBtn');
+    const suggestionStatus = document.getElementById('suggestionStatus');
+    const suggestions = document.getElementById('suggestions');
+    
+    // Update credit cost when quality changes
+    qualitySelect.addEventListener('change', function() {
+        const cost = this.value === 'free' ? 1 : 3;
+        creditCost.textContent = `Cost: ${cost} credit${cost > 1 ? 's' : ''}`;
+        
+        // Show free credit info for 360p
+        const freeCreditInfo = document.getElementById('freeCreditInfo');
+        if (this.value === 'free') {
+            freeCreditInfo.classList.remove('hidden');
+        } else {
+            freeCreditInfo.classList.add('hidden');
+        }
+    });
+    
+    // Show free credit info initially for 360p
+    const freeCreditInfo = document.getElementById('freeCreditInfo');
+    if (qualitySelect.value === 'free') {
+        freeCreditInfo.classList.remove('hidden');
+    }
+    
+    // Handle form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        console.log('🎬 ===== FRONTEND: Generate Video Button Clicked =====');
+        
+        const formData = {
+            prompt: document.getElementById('prompt').value,
+            quality: qualitySelect.value
+        };
+        
+        console.log('📝 FRONTEND: Form data collected:', formData);
+        console.log('📝 FRONTEND: Prompt:', formData.prompt);
+        console.log('📝 FRONTEND: Quality:', formData.quality);
+        
+        // Show loading state
+        generateBtn.disabled = true;
+        generateBtn.textContent = 'Generating...';
+        generationStatus.classList.remove('hidden');
+        
+        try {
+            console.log('🔑 FRONTEND: Auth token found:', authToken ? 'YES' : 'NO');
+            
+            if (!authToken) {
+                console.log('❌ FRONTEND: No auth token - showing login prompt');
+                statusText.textContent = 'Please log in to generate videos.';
+                generationStatus.classList.remove('bg-blue-50', 'border-blue-200');
+                generationStatus.classList.add('bg-red-50', 'border-red-200');
+                return;
+            }
+            
+            console.log('📤 FRONTEND: Sending request to /generate');
+            console.log('📤 FRONTEND: Request payload:', JSON.stringify(formData));
+            
+            const response = await fetch('/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            console.log('📡 FRONTEND: Response received, status:', response.status);
+            
+            const data = await response.json();
+            console.log('📡 FRONTEND: Response data:', data);
+            
+            if (response.ok) {
+                console.log('✅ FRONTEND: Request successful, video generation queued');
+                
+                // Show different messages based on response
+                if (data.task_id) {
+                    statusText.textContent = 'Video generation queued successfully! Redirecting to dashboard...';
+                    console.log('📋 FRONTEND: Task ID received:', data.task_id);
+                } else {
+                    statusText.textContent = 'Video generation started! Redirecting to dashboard...';
+                }
+                
+                form.reset();
+                
+                // Redirect to dashboard after a short delay
+                setTimeout(() => {
+                    console.log('🔄 FRONTEND: Redirecting to dashboard');
+                    window.location.href = '/dashboard';
+                }, 2000);
+            } else {
+                console.log('❌ FRONTEND: Request failed:', data.error);
+                statusText.textContent = `Error: ${data.error}`;
+                generationStatus.classList.remove('bg-blue-50', 'border-blue-200');
+                generationStatus.classList.add('bg-red-50', 'border-red-200');
+            }
+        } catch (error) {
+            console.log('❌ FRONTEND: Network error:', error);
+            statusText.textContent = 'Network error. Please try again.';
+            generationStatus.classList.remove('bg-blue-50', 'border-blue-200');
+            generationStatus.classList.add('bg-red-50', 'border-red-200');
+        }
+        
+        // Reset button state
+        generateBtn.disabled = false;
+        generateBtn.textContent = 'Generate Video';
+        console.log('🎬 ===== FRONTEND: Form submission complete =====');
+            });
+    });
+    
+    // AI Suggestion functionality
+    suggestBtn.addEventListener('click', async function() {
+        console.log('🤖 ===== AI SUGGEST: Button Clicked =====');
+        
+        // Get auth token again to ensure it's available
+        const currentAuthToken = localStorage.getItem('auth_token');
+        console.log('🔑 AI SUGGEST: Current auth token available:', currentAuthToken ? 'YES' : 'NO');
+        console.log('🔑 AI SUGGEST: Current auth token length:', currentAuthToken ? currentAuthToken.length : 0);
+        
+        // Show loading state
+        suggestBtn.disabled = true;
+        suggestBtn.innerHTML = `
+            <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-white inline mr-1"></div>
+            Generating...
+        `;
+        suggestionStatus.classList.remove('hidden');
+        suggestions.classList.add('hidden');
+        
+        console.log('📤 AI SUGGEST: Sending request to /api/ai-suggest-random');
+        
+        try {
+            const response = await fetch('/api/ai-suggest-random', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentAuthToken}`
+                }
+            });
+            
+            console.log('📡 AI SUGGEST: Response received');
+            console.log('📡 AI SUGGEST: Response status:', response.status);
+            
+            const data = await response.json();
+            console.log('📡 AI SUGGEST: Response data:', data);
+            
+            if (response.ok && data.suggestions) {
+                console.log('✅ AI SUGGEST: Success! Found suggestions:', data.suggestions.length);
+                console.log('✅ AI SUGGEST: Suggestions:', data.suggestions);
+                displayRandomSuggestions(data.suggestions);
+            } else {
+                console.log('❌ AI SUGGEST: Response not ok or no suggestions');
+                console.log('❌ AI SUGGEST: Response ok:', response.ok);
+                console.log('❌ AI SUGGEST: Has suggestions:', !!data.suggestions);
+                console.log('❌ AI SUGGEST: Error in data:', data.error);
+                throw new Error(data.error || 'Failed to get suggestions');
+            }
+        } catch (error) {
+            console.error('❌ AI SUGGEST: Error details:', error);
+            console.error('❌ AI SUGGEST: Error name:', error.name);
+            console.error('❌ AI SUGGEST: Error message:', error.message);
+            console.error('❌ AI SUGGEST: Error stack:', error.stack);
+            alert('Failed to get AI suggestions. Please try again. Error: ' + error.message);
+        } finally {
+            console.log('🔄 AI SUGGEST: Resetting button state');
+            // Reset button state
+            suggestBtn.disabled = false;
+            suggestBtn.innerHTML = `
+                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                </svg>
+                AI Suggest
+            `;
+            suggestionStatus.classList.add('hidden');
+            console.log('🤖 ===== AI SUGGEST: Complete =====');
+        }
+    });
+    
+    function displayRandomSuggestions(suggestionList) {
+        console.log('🎨 AI SUGGEST: Displaying random suggestions');
+        console.log('🎨 AI SUGGEST: Suggestion count:', suggestionList.length);
+        console.log('🎨 AI SUGGEST: Suggestions to display:', suggestionList);
+        
+        suggestions.innerHTML = '';
+        suggestions.classList.remove('hidden');
+        
+        // Add header
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'mb-3 p-3 bg-blue-50 border border-blue-200 rounded-md';
+        headerDiv.innerHTML = `
+            <div class="flex items-center">
+                <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                </svg>
+                <div>
+                    <h4 class="font-semibold text-blue-900">AI-Generated Prompts</h4>
+                    <p class="text-sm text-blue-700">Click "Use" to select, or edit before using</p>
+                </div>
+            </div>
+        `;
+        suggestions.appendChild(headerDiv);
+        
+        suggestionList.forEach((suggestion, index) => {
+            console.log(`🎨 AI SUGGEST: Creating suggestion ${index + 1}:`, suggestion);
+            
+            const suggestionDiv = document.createElement('div');
+            suggestionDiv.className = 'p-3 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors';
+            suggestionDiv.innerHTML = `
+                <div class="space-y-3">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Prompt ${index + 1}</label>
+                            <textarea 
+                                class="suggestion-textarea w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                rows="2"
+                                data-index="${index}"
+                                data-original="${suggestion.replace(/"/g, '&quot;')}"
+                            >${suggestion}</textarea>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="flex space-x-2">
+                            <button class="reset-suggestion-btn text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded border border-gray-300 hover:bg-gray-50 transition-colors"
+                                    data-index="${index}">
+                                Reset
+                            </button>
+                            <button class="regenerate-suggestion-btn text-xs text-blue-500 hover:text-blue-700 px-2 py-1 rounded border border-blue-300 hover:bg-blue-50 transition-colors"
+                                    data-index="${index}">
+                                Regenerate
+                    </button>
+                        </div>
+                        <button class="use-suggestion-btn bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm font-medium transition-colors"
+                                data-index="${index}">
+                            Use This
+                        </button>
+                    </div>
+                </div>
+            `;
+            suggestions.appendChild(suggestionDiv);
+        });
+        
+        console.log('🎨 AI SUGGEST: Adding event listeners');
+        
+        // Add event listeners to the "Use" buttons
+        const useButtons = document.querySelectorAll('.use-suggestion-btn');
+        useButtons.forEach((btn, index) => {
+            btn.addEventListener('click', function() {
+                console.log(`🎨 AI SUGGEST: Use button ${index + 1} clicked`);
+                const textarea = document.querySelector(`.suggestion-textarea[data-index="${index}"]`);
+                const suggestion = textarea.value.trim();
+                console.log('🎨 AI SUGGEST: Using suggestion:', suggestion);
+                document.getElementById('prompt').value = suggestion;
+                suggestions.classList.add('hidden');
+                console.log('🎨 AI SUGGEST: Suggestion applied and hidden');
+            });
+        });
+        
+        // Add event listeners to the "Reset" buttons
+        const resetButtons = document.querySelectorAll('.reset-suggestion-btn');
+        resetButtons.forEach((btn) => {
+            btn.addEventListener('click', function() {
+                const index = this.getAttribute('data-index');
+                const textarea = document.querySelector(`.suggestion-textarea[data-index="${index}"]`);
+                const original = textarea.getAttribute('data-original');
+                textarea.value = original;
+                console.log(`🎨 AI SUGGEST: Reset suggestion ${parseInt(index) + 1}`);
+            });
+        });
+        
+        // Add event listeners to the "Regenerate" buttons
+        const regenerateButtons = document.querySelectorAll('.regenerate-suggestion-btn');
+        regenerateButtons.forEach((btn) => {
+            btn.addEventListener('click', async function() {
+                const index = this.getAttribute('data-index');
+                console.log(`🎨 AI SUGGEST: Regenerating suggestion ${parseInt(index) + 1}`);
+                
+                // Show loading state
+                this.disabled = true;
+                this.innerHTML = '<div class="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500 inline"></div>';
+                
+                try {
+                    const currentAuthToken = localStorage.getItem('auth_token');
+                    const response = await fetch('/api/ai-suggest-random', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${currentAuthToken}`
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok && data.suggestions && data.suggestions.length > 0) {
+                        const textarea = document.querySelector(`.suggestion-textarea[data-index="${index}"]`);
+                        const newSuggestion = data.suggestions[0]; // Use first suggestion from new batch
+                        textarea.value = newSuggestion;
+                        textarea.setAttribute('data-original', newSuggestion);
+                        console.log(`🎨 AI SUGGEST: Regenerated suggestion ${parseInt(index) + 1}:`, newSuggestion);
+                    } else {
+                        throw new Error(data.error || 'Failed to regenerate suggestion');
+                    }
+                } catch (error) {
+                    console.error('❌ AI SUGGEST: Error regenerating suggestion:', error);
+                    alert('Failed to regenerate suggestion. Please try again.');
+                } finally {
+                    // Reset button state
+                    this.disabled = false;
+                    this.textContent = 'Regenerate';
+                }
+            });
+        });
+        
+        console.log('🎨 AI SUGGEST: Display complete');
+    }
+    
+    // Preview functionality for prompt packs
+    function previewPack(packId) {
+        // For now, just redirect to the pack detail page
+        window.location.href = `/prompt-pack/${packId}`;
+    }
+    
+    // Simple video error handling
+    function handleVideoErrors() {
+        const videoElements = document.querySelectorAll('video[src*="gcs_signed_url"]');
+        console.log('🎬 Found video elements:', videoElements.length);
+        
+        videoElements.forEach((video, index) => {
+            console.log(`🎬 Processing video ${index + 1}:`, video.src);
+            
+            video.addEventListener('error', function() {
+                console.log(`🎬 Video ${index + 1} failed to load, showing fallback`);
+                this.style.display = 'none';
+                const fallback = this.nextElementSibling;
+                if (fallback && fallback.classList.contains('hidden')) {
+                    fallback.classList.remove('hidden');
+                }
+            });
+        });
+    }
+    
+    // Initialize video error handling
+    document.addEventListener('DOMContentLoaded', function() {
+        handleVideoErrors();
+        initializeChat();
+        initializeSmoothScrolling();
+        initializeAdjectiveTicker();
+    });
+    
+    // Smooth scrolling for anchor links
+    function initializeSmoothScrolling() {
+        // Handle smooth scrolling to generate video section
+        const generateVideoLink = document.querySelector('a[href="#generateVideoSection"]');
+        if (generateVideoLink) {
+            generateVideoLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetSection = document.getElementById('generateVideoSection');
+                if (targetSection) {
+                    targetSection.scrollIntoView({ 
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                    
+                    // Add focus effect to the form
+                    targetSection.classList.add('ring-4', 'ring-primary', 'ring-opacity-30');
+                    setTimeout(() => {
+                        targetSection.classList.remove('ring-4', 'ring-primary', 'ring-opacity-30');
+                    }, 2000);
+                    
+                    // Focus on the prompt input
+                    setTimeout(() => {
+                        document.getElementById('prompt').focus();
+                    }, 500);
+                }
+            });
+        }
+    }
+    
+    // ===== CHAT SYSTEM =====
+    let currentChatVideoId = null;
+    let chatMessages = [];
+    let chatScrollToBottom = true;
+    
+    function initializeChat() {
+        console.log('🗨️ Initializing chat system');
+        
+        // Character counter for chat input
+        const chatInput = document.getElementById('chatInput');
+        const charCount = document.getElementById('chatCharCount');
+        
+        chatInput.addEventListener('input', function() {
+            const count = this.value.length;
+            charCount.textContent = `${count}/500`;
+            
+            if (count > 450) {
+                charCount.classList.add('text-red-500');
+                charCount.classList.remove('text-gray-400');
+            } else {
+                charCount.classList.remove('text-red-500');
+                charCount.classList.add('text-gray-400');
+            }
+        });
+        
+        // Auto-resize textarea
+        chatInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+        
+        // Handle chat form submission
+        document.getElementById('chatForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            sendChatMessage();
+        });
+        
+        // Handle Enter key for sending (Shift+Enter for new line)
+        chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        });
+        
+        // Close chat on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && isChatOpen()) {
+                closeChatSlideout();
+            }
+        });
+    }
+    
+    function openVideoChat(videoId, event) {
+        console.log('🗨️ Opening chat for video:', videoId);
+        event.preventDefault();
+        event.stopPropagation();
+        
+        currentChatVideoId = videoId;
+        
+        // Show the slideout
+        const slideout = document.getElementById('chatSlideout');
+        const backdrop = document.getElementById('chatBackdrop');
+        
+        backdrop.classList.remove('hidden');
+        slideout.classList.remove('translate-x-full');
+        
+        // Load chat messages
+        loadChatMessages(videoId);
+        
+        // Focus input
+        setTimeout(() => {
+            document.getElementById('chatInput').focus();
+        }, 300);
+    }
+    
+    function closeChatSlideout() {
+        console.log('🗨️ Closing chat slideout');
+        const slideout = document.getElementById('chatSlideout');
+        const backdrop = document.getElementById('chatBackdrop');
+        
+        slideout.classList.add('translate-x-full');
+        backdrop.classList.add('hidden');
+        
+        currentChatVideoId = null;
+        chatMessages = [];
+    }
+    
+    function isChatOpen() {
+        const slideout = document.getElementById('chatSlideout');
+        return !slideout.classList.contains('translate-x-full');
+    }
+    
+    async function loadChatMessages(videoId) {
+        console.log('🗨️ Loading chat messages for video:', videoId);
+        
+        const authToken = localStorage.getItem('auth_token');
+        if (!authToken) {
+            showChatError('Please log in to view chat messages');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/v1/videos/${videoId}/chat/messages`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to load messages');
+            }
+            
+            const data = await response.json();
+            chatMessages = data.messages;
+            
+            // Update video title
+            updateChatVideoTitle(videoId);
+            
+            // Render messages
+            renderChatMessages();
+            
+        } catch (error) {
+            console.error('🗨️ Error loading chat messages:', error);
+            showChatError('Failed to load chat messages');
+        }
+    }
+    
+    function updateChatVideoTitle(videoId) {
+        // Find the video element to get title, views, and date
+        const videoCard = document.querySelector(`[data-video-id="${videoId}"]`);
+        let videoTitle = 'Video Chat';
+        let videoViews = '0 views';
+        let videoDate = 'Loading...';
+        
+        if (videoCard) {
+            // Get video prompt from data attribute
+            const videoPrompt = videoCard.dataset.videoPrompt;
+            if (videoPrompt) {
+                videoTitle = videoPrompt.trim();
+            } else {
+                // Fallback to h3 title if no prompt data
+                const titleElement = videoCard.querySelector('h3');
+                if (titleElement) {
+                    videoTitle = titleElement.textContent.trim();
+                }
+            }
+            
+            // Get view count from the views span
+            const viewsElement = videoCard.querySelector('.flex.items-center.justify-between span:first-child');
+            if (viewsElement) {
+                videoViews = viewsElement.textContent.trim();
+            }
+            
+            // Get date from data attribute
+            const videoDateAttr = videoCard.dataset.videoDate;
+            if (videoDateAttr) {
+                videoDate = videoDateAttr;
+            }
+        }
+        
+        // Show full title without truncation - let CSS handle overflow
+        document.getElementById('chatVideoTitle').textContent = videoTitle;
+        document.getElementById('chatVideoTitle').title = videoTitle; // Tooltip for full title
+        document.getElementById('chatVideoViews').textContent = videoViews;
+        document.getElementById('chatVideoDate').textContent = `• ${videoDate}`;
+    }
+    
+    function renderChatMessages() {
+        console.log('🗨️ Rendering', chatMessages.length, 'messages');
+        const container = document.getElementById('chatMessages');
+        
+        if (chatMessages.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-gray-500 py-8">
+                    <svg class="mx-auto w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                    </svg>
+                    <p>Start the conversation!</p>
+                    <p class="text-sm">Share your thoughts about this video</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = chatMessages.map(message => renderMessage(message)).join('');
+        
+        if (chatScrollToBottom) {
+            scrollChatToBottom();
+        }
+    }
+    
+    function renderMessage(message) {
+        const isCurrentUser = getCurrentUserId() == message.user.id;
+        const messageTime = new Date(message.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        return `
+            <div class="chat-message ${isCurrentUser ? 'own-message' : ''}" data-message-id="${message.id}">
+                <div class="flex ${isCurrentUser ? 'justify-end' : 'justify-start'} items-start space-x-2">
+                    ${!isCurrentUser ? `
+                        <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                            ${message.user.avatar}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="max-w-xs lg:max-w-md">
+                        <div class="${isCurrentUser ? 'bg-blue-500 text-white' : 'bg-white border border-gray-200'} rounded-2xl px-4 py-2 shadow-sm">
+                            ${!isCurrentUser ? `<div class="text-xs font-medium text-gray-600 mb-1">${message.user.email}</div>` : ''}
+                            <div class="text-sm">${escapeHtml(message.content)}</div>
+                            ${message.edited ? '<div class="text-xs opacity-75 mt-1">(edited)</div>' : ''}
+                        </div>
+                        
+                        <!-- Message Actions -->
+                        <div class="flex items-center justify-${isCurrentUser ? 'end' : 'start'} mt-1 space-x-2">
+                            <span class="text-xs text-gray-500">${messageTime}</span>
+                            ${renderReactions(message.reactions)}
+                            <button onclick="showEmojiPicker(${message.id}, 'message')" class="text-gray-400 hover:text-gray-600 text-xs">
+                                😊
+                            </button>
+                            <button onclick="toggleReplies(${message.id})" class="text-gray-400 hover:text-gray-600 text-xs">
+                                💬 ${message.reply_count}
+                            </button>
+                        </div>
+                        
+                        <!-- Replies Container -->
+                        <div id="replies-${message.id}" class="mt-2 ml-4 space-y-2 hidden">
+                            ${message.replies.map(reply => renderReply(reply)).join('')}
+                            <div class="reply-input-container hidden">
+                                <form onsubmit="sendReply(event, ${message.id})" class="flex space-x-2 mt-2">
+                                    <input type="text" placeholder="Reply..." class="flex-1 px-3 py-1 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500" maxlength="250">
+                                    <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-blue-600">Send</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${isCurrentUser ? `
+                        <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                            ${message.user.avatar}
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }
+    
+    function renderReply(reply) {
+        const isCurrentUser = getCurrentUserId() == reply.user.id;
+        const replyTime = new Date(reply.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        return `
+            <div class="reply ${isCurrentUser ? 'own-reply' : ''}" data-reply-id="${reply.id}">
+                <div class="flex ${isCurrentUser ? 'justify-end' : 'justify-start'} items-start space-x-2">
+                    ${!isCurrentUser ? `
+                        <div class="w-6 h-6 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                            ${reply.user.avatar}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="max-w-xs">
+                        <div class="${isCurrentUser ? 'bg-green-500 text-white' : 'bg-gray-100'} rounded-xl px-3 py-1.5 text-sm">
+                            ${!isCurrentUser ? `<div class="text-xs font-medium opacity-75 mb-1">${reply.user.email}</div>` : ''}
+                            ${escapeHtml(reply.content)}
+                            ${reply.edited ? '<div class="text-xs opacity-75 mt-1">(edited)</div>' : ''}
+                        </div>
+                        <div class="flex items-center justify-${isCurrentUser ? 'end' : 'start'} mt-1 space-x-1">
+                            <span class="text-xs text-gray-500">${replyTime}</span>
+                            ${renderReactions(reply.reactions, true)}
+                            <button onclick="showEmojiPicker(${reply.id}, 'reply')" class="text-gray-400 hover:text-gray-600 text-xs">
+                                😊
+                            </button>
+                        </div>
+                    </div>
+                    
+                    ${isCurrentUser ? `
+                        <div class="w-6 h-6 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                            ${reply.user.avatar}
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }
+    
+    function renderReactions(reactions, isSmall = false) {
+        if (!reactions || Object.keys(reactions).length === 0) return '';
+        
+        return Object.entries(reactions).map(([emoji, data]) => `
+            <button onclick="toggleReaction('${emoji}', ${data.type || 'message'}, ${data.id})" 
+                    class="inline-flex items-center space-x-1 ${isSmall ? 'text-xs' : 'text-sm'} bg-gray-100 hover:bg-gray-200 rounded-full px-2 py-0.5 transition-colors"
+                    title="${data.users.map(u => u.email).join(', ')}">
+                <span>${emoji}</span>
+                <span class="text-gray-600">${data.count}</span>
+            </button>
+        `).join('');
+    }
+    
+    async function sendChatMessage() {
+        const input = document.getElementById('chatInput');
+        const content = input.value.trim();
+        
+        if (!content || !currentChatVideoId) return;
+        
+        const authToken = localStorage.getItem('auth_token');
+        if (!authToken) {
+            showChatError('Please log in to send messages');
+            return;
+        }
+        
+        // Disable input while sending
+        input.disabled = true;
+        document.getElementById('chatSendBtn').disabled = true;
+        
+        try {
+            const response = await fetch(`/api/v1/videos/${currentChatVideoId}/chat/messages`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ content })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to send message');
+            }
+            
+            const data = await response.json();
+            
+            // Add new message to local array
+            chatMessages.push(data.message);
+            
+            // Clear input
+            input.value = '';
+            input.style.height = 'auto';
+            document.getElementById('chatCharCount').textContent = '0/500';
+            
+            // Re-render messages
+            renderChatMessages();
+            
+        } catch (error) {
+            console.error('🗨️ Error sending message:', error);
+            showChatError('Failed to send message');
+        } finally {
+            input.disabled = false;
+            document.getElementById('chatSendBtn').disabled = false;
+            input.focus();
+        }
+    }
+    
+    function toggleReplies(messageId) {
+        const repliesContainer = document.getElementById(`replies-${messageId}`);
+        const inputContainer = repliesContainer.querySelector('.reply-input-container');
+        
+        if (repliesContainer.classList.contains('hidden')) {
+            repliesContainer.classList.remove('hidden');
+            inputContainer.classList.remove('hidden');
+            inputContainer.querySelector('input').focus();
+        } else {
+            repliesContainer.classList.add('hidden');
+            inputContainer.classList.add('hidden');
+        }
+    }
+    
+    async function sendReply(event, messageId) {
+        event.preventDefault();
+        
+        const form = event.target;
+        const input = form.querySelector('input');
+        const content = input.value.trim();
+        
+        if (!content) return;
+        
+        const authToken = localStorage.getItem('auth_token');
+        if (!authToken) {
+            showChatError('Please log in to send replies');
+            return;
+        }
+        
+        input.disabled = true;
+        
+        try {
+            const response = await fetch(`/api/v1/chat/messages/${messageId}/replies`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ content })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to send reply');
+            }
+            
+            const data = await response.json();
+            
+            // Find and update the message in local array
+            const message = chatMessages.find(m => m.id === messageId);
+            if (message) {
+                message.replies.push(data.reply);
+                message.reply_count = message.replies.length;
+            }
+            
+            // Clear input
+            input.value = '';
+            
+            // Re-render messages
+            renderChatMessages();
+            
+            // Keep replies open
+            document.getElementById(`replies-${messageId}`).classList.remove('hidden');
+            
+        } catch (error) {
+            console.error('🗨️ Error sending reply:', error);
+            showChatError('Failed to send reply');
+        } finally {
+            input.disabled = false;
+        }
+    }
+    
+    function showEmojiPicker(id, type) {
+        // Simple emoji picker - in a real app you'd use a proper emoji picker library
+        const emojis = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏'];
+        
+        const picker = document.createElement('div');
+        picker.className = 'absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex space-x-1';
+        picker.innerHTML = emojis.map(emoji => 
+            `<button onclick="selectEmoji('${emoji}', ${id}, '${type}')" class="hover:bg-gray-100 p-1 rounded text-lg">${emoji}</button>`
+        ).join('');
+        
+        // Position picker near the clicked element
+        const button = event.target.closest('button');
+        const rect = button.getBoundingClientRect();
+        picker.style.top = (rect.top - 50) + 'px';
+        picker.style.left = rect.left + 'px';
+        picker.style.position = 'fixed';
+        
+        document.body.appendChild(picker);
+        
+        // Remove picker when clicking outside
+        setTimeout(() => {
+            document.addEventListener('click', function removePicker(e) {
+                if (!picker.contains(e.target)) {
+                    picker.remove();
+                    document.removeEventListener('click', removePicker);
+                }
+            });
+        }, 100);
+    }
+    
+    async function selectEmoji(emoji, id, type) {
+        const authToken = localStorage.getItem('auth_token');
+        if (!authToken) return;
+        
+        try {
+            const endpoint = type === 'reply' 
+                ? `/api/v1/chat/replies/${id}/reactions`
+                : `/api/v1/chat/messages/${id}/reactions`;
+                
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify({ emoji })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to toggle reaction');
+            }
+            
+            // Reload messages to update reactions
+            await loadChatMessages(currentChatVideoId);
+            
+        } catch (error) {
+            console.error('🗨️ Error toggling reaction:', error);
+        }
+        
+        // Remove emoji picker
+        document.querySelectorAll('.absolute.z-50').forEach(el => el.remove());
+    }
+    
+    function scrollChatToBottom() {
+        const container = document.getElementById('chatMessages');
+        container.scrollTop = container.scrollHeight;
+    }
+    
+    function showChatError(message) {
+        const container = document.getElementById('chatMessages');
+        container.innerHTML = `
+            <div class="text-center text-red-500 py-8">
+                <svg class="mx-auto w-12 h-12 text-red-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p>${message}</p>
+            </div>
+        `;
+    }
+    
+    function getCurrentUserId() {
+        // This would need to be set from the server or decoded from the JWT token
+        // For now, we'll use a simple approach
+        const authToken = localStorage.getItem('auth_token');
+        if (!authToken) return null;
+        
+        try {
+            const payload = JSON.parse(atob(authToken.split('.')[1]));
+            return payload.user_id;
+        } catch (e) {
+            return null;
+        }
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    // ===== ADJECTIVE TICKER =====
+    function initializeAdjectiveTicker() {
+        const adjectives = [
+            'stunning',
+            'beautiful', 
+            'hilarious',
+            'mesmerizing',
+            'awe-inspiring',
+            'old-timey',
+            'epic',
+            'magical',
+            'cinematic',
+            'breathtaking',
+            'whimsical',
+            'dramatic',
+            'futuristic',
+            'nostalgic',
+            'surreal'
+        ];
+        
+        const tickerElement = document.getElementById('adjective-ticker');
+        let currentIndex = 0;
+        
+        function updateAdjective() {
+            // Add fade out effect
+            tickerElement.style.opacity = '0';
+            tickerElement.style.transform = 'translateY(-10px)';
+            
+            setTimeout(() => {
+                // Change the word
+                tickerElement.textContent = adjectives[currentIndex];
+                
+                // Add fade in effect
+                tickerElement.style.opacity = '1';
+                tickerElement.style.transform = 'translateY(0)';
+                
+                // Move to next word
+                currentIndex = (currentIndex + 1) % adjectives.length;
+            }, 150); // Half of transition duration
+        }
+        
+        // Start the ticker after initial delay
+        setTimeout(() => {
+            updateAdjective();
+            // Update every 3 seconds
+            setInterval(updateAdjective, 3000);
+        }, 2000); // Start after 2 seconds
+    }
+</script>
+{% endblock %} 

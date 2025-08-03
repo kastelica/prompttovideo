@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PromptToVideo{% endblock %}</title>
+    {% block meta %}{% endblock %}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-mode.css') }}">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#1E40AF',
+                        accent: '#F59E0B',
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Dark mode transitions */
+        * {
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+        
+        /* Custom scrollbar for dark mode */
+        .dark ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .dark ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50 dark:bg-dark-900 min-h-screen" id="body">
+    <!-- Navigation -->
+    <nav class="bg-white dark:bg-dark-800 shadow-sm border-b border-gray-200 dark:border-dark-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="{{ url_for('main.index') }}" class="text-xl md:text-2xl font-bold text-primary">
+                        PromptToVideo
+                    </a>
+                </div>
+                
+                <!-- Global Search -->
+                <div class="flex-1 flex justify-center max-w-md mx-auto hidden md:block mt-2">
+                    <div class="relative w-full max-w-sm">
+                        <input type="text" 
+                               id="globalSearch" 
+                               placeholder="Search videos, prompts, tags, themes..." 
+                               class="w-full px-4 py-2 pl-10 pr-4 text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white dark:focus:bg-dark-600">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-3">
+                            <svg class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                        
+                        <!-- Search Suggestions Dropdown -->
+                        <div id="searchSuggestions" class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg shadow-lg hidden z-50 max-h-96 overflow-y-auto">
+                            <!-- Suggestions will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex items-center space-x-4">
+                    <!-- Dark Mode Toggle -->
+                    <button id="darkModeToggle" class="p-2 text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors">
+                        <!-- Sun icon for dark mode -->
+                        <svg id="sunIcon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        <!-- Moon icon for light mode -->
+                        <svg id="moonIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                        </svg>
+                    </button>
+                    
+                    <!-- Profile Mega Menu -->
+                    <div class="relative hidden" id="navProfile">
+                        <button onclick="toggleMegaMenu()" class="flex items-center text-gray-700 hover:text-primary transition-colors relative">
+                            <div class="w-8 h-8 bg-gradient-to-br from-primary to-secondary text-white rounded-full flex items-center justify-center text-sm font-semibold shadow-md" id="userAvatar">
+                                U
+                            </div>
+                            <svg class="w-4 h-4 ml-1 text-gray-500 transition-transform" id="megaMenuArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                            <span id="megaMenuNotificationBadge" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs w-4 h-4 flex items-center justify-center hidden">0</span>
+                        </button>
+                        
+                        <!-- Mega Menu -->
+                        <div id="megaMenu" class="absolute right-0 mt-3 w-[600px] bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-2xl shadow-2xl hidden z-50 transform opacity-0 scale-95 translate-y-2 transition-all duration-300">
+                            <!-- Header -->
+                            <div class="p-6 border-b border-gray-100 dark:border-dark-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-dark-700 dark:to-dark-600 rounded-t-2xl">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-12 h-12 bg-gradient-to-br from-primary to-secondary text-white rounded-full flex items-center justify-center text-lg font-bold shadow-lg" id="megaMenuAvatar">
+                                        U
+                                    </div>
+                                    <div class="flex-1">
+                                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100" id="megaMenuName">User</h3>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400" id="megaMenuEmail">user@example.com</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Menu Items - 3x2 Grid Layout -->
+                            <div class="p-6">
+                                <!-- Row 1: Main Actions -->
+                                <div class="grid grid-cols-3 gap-4 mb-6">
+                                    <a href="{{ url_for('main.dashboard') }}" class="flex flex-col items-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 hover:from-blue-100 hover:to-blue-200 dark:hover:from-blue-800/30 dark:hover:to-blue-700/30 rounded-xl transition-all duration-200 group">
+                                        <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                                            </svg>
+                                        </div>
+                                        <p class="font-semibold text-gray-900 dark:text-gray-100 text-center">Dashboard</p>
+                                        <p class="text-xs text-gray-600 dark:text-gray-400 text-center">Manage videos</p>
+                                    </a>
+                                    
+                                    <a href="{{ url_for('main.challenges') }}" class="flex flex-col items-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 hover:from-orange-100 hover:to-orange-200 dark:hover:from-orange-800/30 dark:hover:to-orange-700/30 rounded-xl transition-all duration-200 group">
+                                        <div class="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                        </div>
+                                        <p class="font-semibold text-gray-900 dark:text-gray-100 text-center">Challenges</p>
+                                        <p class="text-xs text-gray-600 dark:text-gray-400 text-center">Join competitions</p>
+                                    </a>
+                                    
+                                    <a href="{{ url_for('payments.credit_packs_page') }}" class="flex flex-col items-center p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 hover:from-green-100 hover:to-green-200 dark:hover:from-green-800/30 dark:hover:to-green-700/30 rounded-xl transition-all duration-200 group">
+                                        <div class="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                            </svg>
+                                        </div>
+                                        <p class="font-semibold text-gray-900 dark:text-gray-100 text-center">Buy Credits</p>
+                                        <p class="text-xs text-gray-600 dark:text-gray-400 text-center">Get more credits</p>
+                                    </a>
+                                </div>
+                                
+                                <!-- Row 2: Secondary Actions -->
+                                <div class="grid grid-cols-3 gap-4 mb-6">
+                                    <a href="/my-videos" class="flex flex-col items-center p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900/20 dark:to-indigo-800/20 hover:from-indigo-100 hover:to-indigo-200 dark:hover:from-indigo-800/30 dark:hover:to-indigo-700/30 rounded-xl transition-all duration-200 group">
+                                        <div class="w-12 h-12 bg-indigo-500 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                            </svg>
+                                        </div>
+                                        <p class="font-semibold text-gray-900 dark:text-gray-100 text-center">My Videos</p>
+                                        <p class="text-xs text-gray-600 dark:text-gray-400 text-center">View all videos</p>
+                                    </a>
+                                    
+                                    <a href="/referral" class="flex flex-col items-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 hover:from-purple-100 hover:to-purple-200 dark:hover:from-purple-800/30 dark:hover:to-purple-700/30 rounded-xl transition-all duration-200 group">
+                                        <div class="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                            </svg>
+                                        </div>
+                                        <p class="font-semibold text-gray-900 dark:text-gray-100 text-center">Referral</p>
+                                        <p class="text-xs text-gray-600 dark:text-gray-400 text-center">Earn rewards</p>
+                                    </a>
+                                    
+                                    <a href="/api-docs" class="flex flex-col items-center p-4 bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-900/20 dark:to-teal-800/20 hover:from-teal-100 hover:to-teal-200 dark:hover:from-teal-800/30 dark:hover:to-teal-700/30 rounded-xl transition-all duration-200 group">
+                                        <div class="w-12 h-12 bg-teal-500 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                                            </svg>
+                                        </div>
+                                        <p class="font-semibold text-gray-900 dark:text-gray-100 text-center">API Docs</p>
+                                        <p class="text-xs text-gray-600 dark:text-gray-400 text-center">Developer tools</p>
+                                    </a>
+                                </div>
+                                
+                                <!-- Settings & Help Row -->
+                                <div class="grid grid-cols-2 gap-4 mb-6">
+                                    <a href="/profile" class="flex items-center p-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-dark-700 dark:to-dark-600 hover:from-gray-100 hover:to-gray-200 dark:hover:from-dark-600 dark:hover:to-dark-500 rounded-lg transition-all duration-200 group">
+                                        <div class="w-10 h-10 bg-gray-500 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p class="font-semibold text-gray-900 dark:text-gray-100">My Profile</p>
+                                            <p class="text-xs text-gray-600 dark:text-gray-400">View profile</p>
+                                        </div>
+                                    </a>
+                                    
+                                    <a href="/settings" class="flex items-center p-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-dark-700 dark:to-dark-600 hover:from-gray-100 hover:to-gray-200 dark:hover:from-dark-600 dark:hover:to-dark-500 rounded-lg transition-all duration-200 group">
+                                        <div class="w-10 h-10 bg-gray-600 rounded-lg flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p class="font-semibold text-gray-900 dark:text-gray-100">Settings</p>
+                                            <p class="text-xs text-gray-600 dark:text-gray-400">Preferences</p>
+                                        </div>
+                                    </a>
+                                </div>
+                                
+                                <!-- Notifications Preview -->
+                                <div class="border-t border-gray-100 dark:border-dark-700 pt-4 mb-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Recent Notifications</h4>
+                                        <a href="#" onclick="toggleNotifications()" class="text-xs text-primary hover:text-secondary">View All</a>
+                                    </div>
+                                    <div id="megaMenuNotifications" class="space-y-2 max-h-32 overflow-y-auto">
+                                        <div class="text-center text-gray-500 py-4">
+                                            <svg class="mx-auto w-6 h-6 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                                            </svg>
+                                            <p class="text-xs">No new notifications</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Logout -->
+                                <div class="border-t border-gray-100 dark:border-dark-700 pt-4">
+                                    <button onclick="logout()" class="w-full flex items-center justify-center p-3 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg transition-colors group">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                                        </svg>
+                                        <span class="font-medium">Sign Out</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <a href="{{ url_for('auth.login_page') }}" class="text-gray-700 hover:text-primary" id="navLogin">Login</a>
+                    <a href="{{ url_for('auth.register_page') }}" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-secondary" id="navSignup">Sign Up</a>
+                </div>
+                
+                <!-- Mobile Navigation -->
+                <div class="md:hidden flex items-center space-x-3">
+                    <!-- Mobile Dark Mode Toggle -->
+                    <button id="mobileDarkModeToggle" class="p-2 text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary transition-colors">
+                        <!-- Sun icon for dark mode -->
+                        <svg id="mobileSunIcon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        <!-- Moon icon for light mode -->
+                        <svg id="mobileMoonIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                        </svg>
+                    </button>
+                    
+                    <!-- Mobile Search Icon -->
+                    <button id="mobileSearchBtn" class="text-gray-700 dark:text-gray-300 hover:text-primary focus:outline-none focus:text-primary">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </button>
+                    
+                    <!-- Mobile Hamburger Menu -->
+                    <button id="mobileMenuBtn" class="text-gray-700 dark:text-gray-300 hover:text-primary focus:outline-none focus:text-primary">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Mobile Search Overlay -->
+            <div id="mobileSearchOverlay" class="hidden md:hidden fixed inset-0 bg-black bg-opacity-50 z-50">
+                <div class="bg-white dark:bg-dark-800 p-4">
+                    <div class="flex items-center mb-4">
+                        <div class="flex-1 relative">
+                            <input type="text" 
+                                   id="mobileSearchInput" 
+                                   placeholder="Search videos, users, or tags..." 
+                                   class="w-full px-4 py-3 pl-12 pr-4 text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white dark:focus:bg-dark-600">
+                            <div class="absolute inset-y-0 left-0 flex items-center pl-4">
+                                <svg class="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <button id="closeMobileSearch" class="ml-3 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Mobile Search Suggestions -->
+                    <div id="mobileSearchSuggestions" class="bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg shadow-lg max-h-80 overflow-y-auto">
+                        <!-- Suggestions will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mobile Menu -->
+            <div id="mobileMenu" class="hidden md:hidden">
+                <div class="px-2 pt-2 pb-3 space-y-1 bg-white dark:bg-dark-800 border-t border-gray-200 dark:border-dark-700">
+                    <!-- Main Navigation -->
+                    
+                    <!-- Divider -->
+                    <hr class="my-2 border-gray-200 dark:border-dark-700">
+                    
+                    <!-- User-specific Links -->
+                    <a href="{{ url_for('main.dashboard') }}" class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary hover:bg-gray-50 dark:hover:bg-dark-700 rounded-md hidden flex items-center" id="mobileNavDashboard">
+                        <svg class="w-5 h-5 mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                        </svg>
+                        Dashboard
+                    </a>
+                    <a href="/profile" class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary hover:bg-gray-50 dark:hover:bg-dark-700 rounded-md hidden flex items-center" id="mobileNavProfile">
+                        <svg class="w-5 h-5 mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                        My Profile
+                    </a>
+                    <a href="{{ url_for('payments.credit_packs_page') }}" class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary hover:bg-gray-50 dark:hover:bg-dark-700 rounded-md hidden flex items-center" id="mobileNavCredits">
+                        <svg class="w-5 h-5 mr-3 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                        </svg>
+                        Buy Credits
+                    </a>
+                    <a href="/settings" class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary hover:bg-gray-50 dark:hover:bg-dark-700 rounded-md hidden flex items-center" id="mobileNavSettings">
+                        <svg class="w-5 h-5 mr-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Settings
+                    </a>
+                    
+                    <!-- Divider -->
+                    <hr class="my-2 border-gray-200 hidden" id="mobileNavDivider">
+                    
+                    <!-- Auth Links -->
+                    <button onclick="logout()" class="block w-full text-left px-3 py-2 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md hidden flex items-center" id="mobileNavLogout">
+                        <svg class="w-5 h-5 mr-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                        Logout
+                    </button>
+                    <a href="{{ url_for('auth.login_page') }}" class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary hover:bg-gray-50 dark:hover:bg-dark-700 rounded-md flex items-center" id="mobileNavLogin">
+                        <svg class="w-5 h-5 mr-3 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
+                        </svg>
+                        Login
+                    </a>
+                    <a href="{{ url_for('auth.register_page') }}" class="block px-3 py-2 bg-primary text-white hover:bg-secondary rounded-md flex items-center" id="mobileNavSignup">
+                        <svg class="w-5 h-5 mr-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                        </svg>
+                        Sign Up
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 bg-gray-50 dark:bg-dark-900 min-h-screen">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="mb-4 p-4 rounded-md {% if category == 'error' %}bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800{% else %}bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white mt-12">
+        <div class="max-w-7xl mx-auto px-4 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Company Info -->
+                <div class="col-span-1 md:col-span-2">
+                    <h3 class="text-xl font-bold mb-4">Prompt Videos AI</h3>
+                    <p class="text-gray-300 mb-4">Create stunning videos from text prompts using advanced AI technology. Transform your ideas into captivating visual content.</p>
+                    <div class="flex space-x-4">
+                        <!-- Instagram -->
+                        <a href="#" class="text-gray-400 hover:text-pink-400 transition-colors transform hover:scale-110">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.174-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.402.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.357-.629-2.746-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24.009 12.017 24.009c6.624 0 11.99-5.367 11.99-11.988C24.007 5.367 18.641.001 12.017.001z"/>
+                            </svg>
+                        </a>
+                        <!-- TikTok -->
+                        <a href="#" class="text-gray-400 hover:text-black transition-colors transform hover:scale-110">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+                            </svg>
+                        </a>
+                        <!-- Facebook -->
+                        <a href="#" class="text-gray-400 hover:text-blue-500 transition-colors transform hover:scale-110">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Quick Links -->
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Quick Links</h4>
+                    <ul class="space-y-2">
+                        <li><a href="{{ url_for('main.index') }}" class="text-gray-300 hover:text-white transition-colors">Home</a></li>
+                        <li><a href="{{ url_for('main.dashboard') }}" class="text-gray-300 hover:text-white transition-colors">Dashboard</a></li>
+                        <li><a href="{{ url_for('main.challenges') }}" class="text-gray-300 hover:text-white transition-colors">Challenges</a></li>
+                        <li><a href="{{ url_for('payments.credit_packs_page') }}" class="text-gray-300 hover:text-white transition-colors">Buy Credits</a></li>
+                        <li><a href="{{ url_for('main.api_docs') }}" class="text-gray-300 hover:text-white transition-colors">API Documentation</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Support -->
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Support</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Help Center</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-white transition-colors">Contact Us</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Bottom Bar -->
+            <div class="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-400 text-sm">&copy; 2024 Prompt Videos AI. All rights reserved.</p>
+                <div class="flex space-x-6 mt-4 md:mt-0">
+                    <a href="#" class="text-gray-400 hover:text-white text-sm transition-colors">Cookies</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+    
+    <script>
+        // Global variables for UI state
+        let searchTimeout;
+        let currentUser = null;
+        
+        // Dark mode functionality
+        function initializeDarkMode() {
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            const mobileDarkModeToggle = document.getElementById('mobileDarkModeToggle');
+            const sunIcon = document.getElementById('sunIcon');
+            const moonIcon = document.getElementById('moonIcon');
+            const mobileSunIcon = document.getElementById('mobileSunIcon');
+            const mobileMoonIcon = document.getElementById('mobileMoonIcon');
+            const body = document.getElementById('body');
+            
+            // Check for saved dark mode preference or default to light mode
+            const isDarkMode = localStorage.getItem('darkMode') === 'true' || 
+                              (!localStorage.getItem('darkMode') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            
+            // Apply initial dark mode state
+            if (isDarkMode) {
+                body.classList.add('dark');
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+                mobileSunIcon.classList.remove('hidden');
+                mobileMoonIcon.classList.add('hidden');
+            } else {
+                body.classList.remove('dark');
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+                mobileSunIcon.classList.add('hidden');
+                mobileMoonIcon.classList.remove('hidden');
+            }
+            
+            // Desktop toggle functionality
+            if (darkModeToggle) {
+                darkModeToggle.addEventListener('click', function() {
+                    const isCurrentlyDark = body.classList.contains('dark');
+                    
+                    if (isCurrentlyDark) {
+                        // Switch to light mode
+                        body.classList.remove('dark');
+                        localStorage.setItem('darkMode', 'false');
+                        sunIcon.classList.add('hidden');
+                        moonIcon.classList.remove('hidden');
+                        mobileSunIcon.classList.add('hidden');
+                        mobileMoonIcon.classList.remove('hidden');
+                    } else {
+                        // Switch to dark mode
+                        body.classList.add('dark');
+                        localStorage.setItem('darkMode', 'true');
+                        sunIcon.classList.remove('hidden');
+                        moonIcon.classList.add('hidden');
+                        mobileSunIcon.classList.remove('hidden');
+                        mobileMoonIcon.classList.add('hidden');
+                    }
+                });
+            }
+            
+            // Mobile toggle functionality
+            if (mobileDarkModeToggle) {
+                mobileDarkModeToggle.addEventListener('click', function() {
+                    const isCurrentlyDark = body.classList.contains('dark');
+                    
+                    if (isCurrentlyDark) {
+                        // Switch to light mode
+                        body.classList.remove('dark');
+                        localStorage.setItem('darkMode', 'false');
+                        sunIcon.classList.add('hidden');
+                        moonIcon.classList.remove('hidden');
+                        mobileSunIcon.classList.add('hidden');
+                        mobileMoonIcon.classList.remove('hidden');
+                    } else {
+                        // Switch to dark mode
+                        body.classList.add('dark');
+                        localStorage.setItem('darkMode', 'true');
+                        sunIcon.classList.remove('hidden');
+                        moonIcon.classList.add('hidden');
+                        mobileSunIcon.classList.remove('hidden');
+                        mobileMoonIcon.classList.add('hidden');
+                    }
+                });
+            }
+        }
+        
+        // Check authentication status and update navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize dark mode
+            initializeDarkMode();
+            
+            const authToken = localStorage.getItem('auth_token');
+            
+            // Desktop navigation elements
+            const navLogin = document.getElementById('navLogin');
+            const navSignup = document.getElementById('navSignup');
+            const navProfile = document.getElementById('navProfile');
+            
+            // Mobile navigation elements
+            const mobileNavLogin = document.getElementById('mobileNavLogin');
+            const mobileNavSignup = document.getElementById('mobileNavSignup');
+            
+            if (authToken) {
+                // User is logged in - show profile
+                navProfile.classList.remove('hidden');
+                navLogin.classList.add('hidden');
+                navSignup.classList.add('hidden');
+                
+                mobileNavLogin.classList.remove('hidden');
+                mobileNavSignup.classList.remove('hidden');
+                
+                // Initialize user-specific features
+                initializeSearch();
+                initializeMobileSearch();
+                loadUserInfo();
+            } else {
+                // User is not logged in - show login, signup
+                navProfile.classList.add('hidden');
+                navLogin.classList.remove('hidden');
+                navSignup.classList.remove('hidden');
+                
+                mobileNavLogin.classList.remove('hidden');
+                mobileNavSignup.classList.remove('hidden');
+                
+                // Initialize search for non-authenticated users too
+                initializeMobileSearch();
+            }
+            
+            // Initialize mobile menu functionality
+            initializeMobileMenu();
+        });
+        
+        // Initialize search functionality
+        function initializeSearch() {
+            const searchInput = document.getElementById('globalSearch');
+            const suggestionsDiv = document.getElementById('searchSuggestions');
+            
+            if (!searchInput) return;
+            
+            searchInput.addEventListener('input', function() {
+                const query = this.value.trim();
+                
+                if (searchTimeout) {
+                    clearTimeout(searchTimeout);
+                }
+                
+                if (query.length < 2) {
+                    suggestionsDiv.classList.add('hidden');
+                    return;
+                }
+                
+                searchTimeout = setTimeout(() => {
+                    fetchSearchSuggestions(query);
+                }, 300);
+            });
+            
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const query = this.value.trim();
+                    if (query) {
+                        window.location.href = `/search?q=${encodeURIComponent(query)}`;
+                    }
+                }
+            });
+            
+            // Close suggestions when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!searchInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+                    suggestionsDiv.classList.add('hidden');
+                }
+            });
+        }
+        
+        // Fetch search suggestions
+        async function fetchSearchSuggestions(query) {
+            try {
+                const response = await fetch(`/api/v1/search/suggestions?q=${encodeURIComponent(query)}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displaySearchSuggestions(data.suggestions);
+                }
+            } catch (error) {
+                console.error('Error fetching search suggestions:', error);
+            }
+        }
+        
+        // Display enhanced search suggestions
+        function displaySearchSuggestions(suggestions) {
+            const suggestionsDiv = document.getElementById('searchSuggestions');
+            
+            if (suggestions.length === 0) {
+                suggestionsDiv.classList.add('hidden');
+                return;
+            }
+            
+            const html = suggestions.map(suggestion => {
+                let icon = '🔍';
+                let metadata = '';
+                let clickAction = `selectSuggestion('${suggestion.text.replace(/'/g, "\\'")}')`;
+                
+                // Enhanced icons and metadata based on type
+                switch(suggestion.type) {
+                    case 'video_title':
+                        icon = '📹';
+                        metadata = suggestion.views ? `${suggestion.views} views` : '';
+                        clickAction = `window.location.href = '/watch/${suggestion.video_id}'`;
+                        break;
+                    case 'video_prompt':
+                        icon = '💭';
+                        metadata = suggestion.views ? `${suggestion.views} views` : '';
+                        clickAction = `window.location.href = '/watch/${suggestion.video_id}'`;
+                        break;
+                    case 'tag':
+                        icon = '#';
+                        metadata = suggestion.usage_count ? `${suggestion.usage_count} videos` : '';
+                        break;
+                    case 'user':
+                        icon = '@';
+                        metadata = suggestion.follower_count ? `${suggestion.follower_count} followers` : '';
+                        clickAction = `window.location.href = '/profile/${suggestion.user_id}'`;
+                        break;
+                    case 'popular_search':
+                        icon = '🔥';
+                        metadata = 'trending';
+                        break;
+                    default:
+                        icon = '🔍';
+                }
+                
+                return `
+                    <div class="p-3 hover:bg-gray-50 dark:hover:bg-dark-700 cursor-pointer border-b border-gray-100 dark:border-dark-700 last:border-b-0" 
+                         onclick="${clickAction}">
+                        <div class="flex items-center">
+                            <span class="text-lg mr-3">${icon}</span>
+                            <div class="flex-1">
+                                <div class="text-gray-900 dark:text-gray-100 text-sm font-medium">${suggestion.display || suggestion.text}</div>
+                                ${metadata ? `<div class="text-xs text-gray-500 dark:text-gray-400 mt-1">${metadata}</div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            suggestionsDiv.innerHTML = html;
+            suggestionsDiv.classList.remove('hidden');
+        }
+        
+        // Select search suggestion
+        function selectSuggestion(text) {
+            const searchInput = document.getElementById('globalSearch');
+            searchInput.value = text;
+            document.getElementById('searchSuggestions').classList.add('hidden');
+            window.location.href = `/search?q=${encodeURIComponent(text)}`;
+        }
+        
+        // Old notification functions removed - now integrated into mega menu
+        
+        // Old notification list function removed - now integrated into mega menu
+        
+        // Load mega menu notification badge
+        async function loadMegaMenuNotificationBadge() {
+            try {
+                const response = await fetch('/api/v1/notifications?unread_only=true', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    updateMegaMenuNotificationBadge(data.unread_count);
+                }
+            } catch (error) {
+                console.error('Error loading mega menu notification badge:', error);
+            }
+        }
+        
+        // Update mega menu notification badge
+        function updateMegaMenuNotificationBadge(count) {
+            const badge = document.getElementById('megaMenuNotificationBadge');
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+        
+        // Load mega menu notifications
+        async function loadMegaMenuNotifications() {
+            try {
+                const response = await fetch('/api/v1/notifications?per_page=3', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displayMegaMenuNotifications(data.notifications);
+                }
+            } catch (error) {
+                console.error('Error loading mega menu notifications:', error);
+            }
+        }
+        
+        // Display mega menu notifications
+        function displayMegaMenuNotifications(notifications) {
+            const container = document.getElementById('megaMenuNotifications');
+            
+            if (notifications.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-gray-500 dark:text-gray-400 py-4">
+                        <svg class="mx-auto w-6 h-6 text-gray-300 dark:text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                        </svg>
+                        <p class="text-xs">No new notifications</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const html = notifications.map(notification => `
+                <div class="p-2 hover:bg-gray-50 dark:hover:bg-dark-700 rounded-lg cursor-pointer transition-colors" onclick="markNotificationRead(${notification.id})">
+                    <div class="flex items-start space-x-2">
+                        <div class="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0 ${notification.read ? 'opacity-30' : ''}"></div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">${notification.title}</p>
+                            <p class="text-xs text-gray-600 dark:text-gray-400 truncate">${notification.message}</p>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">${new Date(notification.created_at).toLocaleDateString()}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = html;
+        }
+        
+        // Old display notifications function removed - now integrated into mega menu
+        
+        // Mark notification as read
+        async function markNotificationRead(notificationId) {
+            try {
+                await fetch(`/api/v1/notifications/${notificationId}/read`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                    }
+                });
+                
+                // Reload notifications to update badge and list
+                loadMegaMenuNotificationBadge();
+                loadMegaMenuNotifications();
+            } catch (error) {
+                console.error('Error marking notification as read:', error);
+            }
+        }
+        
+        // Mark all notifications as read
+        async function markAllNotificationsRead() {
+            try {
+                await fetch('/api/v1/notifications/mark-all-read', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                    }
+                });
+                
+                // Reload notifications
+                loadMegaMenuNotificationBadge();
+                loadMegaMenuNotifications();
+            } catch (error) {
+                console.error('Error marking all notifications as read:', error);
+            }
+        }
+        
+        // Toggle mega menu
+        function toggleMegaMenu() {
+            const megaMenu = document.getElementById('megaMenu');
+            const arrow = document.getElementById('megaMenuArrow');
+            
+            if (megaMenu.classList.contains('hidden')) {
+                // Show mega menu with rising animation
+                megaMenu.classList.remove('hidden');
+                setTimeout(() => {
+                    megaMenu.classList.remove('opacity-0', 'scale-95', 'translate-y-2');
+                    megaMenu.classList.add('opacity-100', 'scale-100', 'translate-y-0');
+                }, 10);
+                
+                // Rotate arrow
+                arrow.style.transform = 'rotate(180deg)';
+                
+                // Load notifications for mega menu
+                loadMegaMenuNotifications();
+            } else {
+                // Hide mega menu with falling animation
+                megaMenu.classList.add('opacity-0', 'scale-95', 'translate-y-2');
+                setTimeout(() => {
+                    megaMenu.classList.add('hidden');
+                }, 300);
+                
+                // Reset arrow
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+        
+        // Load user info
+        async function loadUserInfo() {
+            try {
+                const response = await fetch('/api/v1/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const user = await response.json();
+                    currentUser = user;
+                    
+                    // Update user avatar
+                    const avatar = document.getElementById('userAvatar');
+                    const megaMenuAvatar = document.getElementById('megaMenuAvatar');
+                    const megaMenuName = document.getElementById('megaMenuName');
+                    const megaMenuEmail = document.getElementById('megaMenuEmail');
+                    
+                    let displayName = 'User';
+                    let avatarText = 'U';
+                    
+                    if (user.profile && user.profile.display_name) {
+                        displayName = user.profile.display_name;
+                        avatarText = user.profile.display_name.charAt(0).toUpperCase();
+                    } else {
+                        displayName = user.email.split('@')[0];
+                        avatarText = user.email.charAt(0).toUpperCase();
+                    }
+                    
+                    // Update all avatar instances
+                    avatar.textContent = avatarText;
+                    megaMenuAvatar.textContent = avatarText;
+                    
+                    // Update mega menu user info
+                    megaMenuName.textContent = displayName;
+                    megaMenuEmail.textContent = user.email;
+                    
+                    // Load notifications for badge
+                    loadMegaMenuNotificationBadge();
+                }
+            } catch (error) {
+                console.error('Error loading user info:', error);
+            }
+        }
+        
+        // Initialize mobile menu functionality
+        function initializeMobileMenu() {
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            
+            if (mobileMenuBtn && mobileMenu) {
+            mobileMenuBtn.addEventListener('click', function() {
+                mobileMenu.classList.toggle('hidden');
+                    // Close mobile search if open
+                    document.getElementById('mobileSearchOverlay').classList.add('hidden');
+                });
+            }
+        }
+        
+        // Initialize mobile search functionality
+        function initializeMobileSearch() {
+            const mobileSearchBtn = document.getElementById('mobileSearchBtn');
+            const mobileSearchOverlay = document.getElementById('mobileSearchOverlay');
+            const mobileSearchInput = document.getElementById('mobileSearchInput');
+            const closeMobileSearchBtn = document.getElementById('closeMobileSearch');
+            const mobileSearchSuggestions = document.getElementById('mobileSearchSuggestions');
+            
+            if (!mobileSearchBtn || !mobileSearchOverlay) return;
+            
+            // Open mobile search
+            mobileSearchBtn.addEventListener('click', function() {
+                mobileSearchOverlay.classList.remove('hidden');
+                // Close mobile menu if open
+                document.getElementById('mobileMenu').classList.add('hidden');
+                // Focus on search input
+                setTimeout(() => mobileSearchInput.focus(), 100);
+            });
+            
+            // Close mobile search
+            closeMobileSearchBtn.addEventListener('click', function() {
+                mobileSearchOverlay.classList.add('hidden');
+                mobileSearchInput.value = '';
+                mobileSearchSuggestions.innerHTML = '';
+            });
+            
+            // Close on overlay click
+            mobileSearchOverlay.addEventListener('click', function(e) {
+                if (e.target === mobileSearchOverlay) {
+                    mobileSearchOverlay.classList.add('hidden');
+                    mobileSearchInput.value = '';
+                    mobileSearchSuggestions.innerHTML = '';
+                }
+            });
+            
+            // Handle search input
+            let mobileSearchTimeout;
+            mobileSearchInput.addEventListener('input', function() {
+                const query = this.value.trim();
+                
+                if (mobileSearchTimeout) {
+                    clearTimeout(mobileSearchTimeout);
+                }
+                
+                if (query.length < 1) {
+                    mobileSearchSuggestions.innerHTML = '';
+                    return;
+                }
+                
+                mobileSearchTimeout = setTimeout(() => {
+                    fetchMobileSearchSuggestions(query);
+                }, 300);
+            });
+            
+            // Handle enter key
+            mobileSearchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const query = this.value.trim();
+                    if (query) {
+                        mobileSearchOverlay.classList.add('hidden');
+                        window.location.href = `/search?q=${encodeURIComponent(query)}`;
+                    }
+                }
+            });
+        }
+        
+        // Fetch mobile search suggestions
+        async function fetchMobileSearchSuggestions(query) {
+            try {
+                const headers = {};
+                const authToken = localStorage.getItem('auth_token');
+                if (authToken) {
+                    headers['Authorization'] = `Bearer ${authToken}`;
+                }
+                
+                const response = await fetch(`/api/v1/search/suggestions?q=${encodeURIComponent(query)}`, {
+                    headers: headers
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displayMobileSearchSuggestions(data.suggestions);
+                }
+            } catch (error) {
+                console.error('Error fetching mobile search suggestions:', error);
+            }
+        }
+        
+        // Display mobile search suggestions
+        function displayMobileSearchSuggestions(suggestions) {
+            const suggestionsDiv = document.getElementById('mobileSearchSuggestions');
+            
+            if (suggestions.length === 0) {
+                suggestionsDiv.innerHTML = '<div class="p-4 text-gray-500 dark:text-gray-400 text-center">No suggestions found</div>';
+                return;
+            }
+            
+            const html = suggestions.map(suggestion => {
+                let icon = '🔍';
+                let metadata = '';
+                let clickAction = `selectMobileSuggestion('${suggestion.text.replace(/'/g, "\\'")}')`;
+                
+                // Enhanced icons and metadata based on type
+                switch(suggestion.type) {
+                    case 'video_title':
+                        icon = '📹';
+                        metadata = suggestion.views ? `${suggestion.views} views` : '';
+                        clickAction = `window.location.href = '/watch/${suggestion.video_id}'`;
+                        break;
+                    case 'video_prompt':
+                        icon = '💭';
+                        metadata = suggestion.views ? `${suggestion.views} views` : '';
+                        clickAction = `window.location.href = '/watch/${suggestion.video_id}'`;
+                        break;
+                    case 'tag':
+                        icon = '#';
+                        metadata = suggestion.usage_count ? `${suggestion.usage_count} videos` : '';
+                        break;
+                    case 'user':
+                        icon = '@';
+                        metadata = suggestion.follower_count ? `${suggestion.follower_count} followers` : '';
+                        clickAction = `window.location.href = '/profile/${suggestion.user_id}'`;
+                        break;
+                    case 'popular_search':
+                        icon = '🔥';
+                        metadata = 'trending';
+                        break;
+                    default:
+                        icon = '🔍';
+                }
+                
+                return `
+                    <div class="p-4 hover:bg-gray-50 dark:hover:bg-dark-700 cursor-pointer border-b border-gray-100 dark:border-dark-700 last:border-b-0" 
+                         onclick="${clickAction}">
+                        <div class="flex items-center">
+                            <span class="text-xl mr-4">${icon}</span>
+                            <div class="flex-1">
+                                <div class="text-gray-900 dark:text-gray-100 font-medium">${suggestion.display || suggestion.text}</div>
+                                ${metadata ? `<div class="text-sm text-gray-500 dark:text-gray-400 mt-1">${metadata}</div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            suggestionsDiv.innerHTML = html;
+        }
+        
+        // Select mobile search suggestion
+        function selectMobileSuggestion(text) {
+            const mobileSearchInput = document.getElementById('mobileSearchInput');
+            mobileSearchInput.value = text;
+            document.getElementById('mobileSearchOverlay').classList.add('hidden');
+            window.location.href = `/search?q=${encodeURIComponent(text)}`;
+        }
+        
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            const mobileMenu = document.getElementById('mobileMenu');
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mobileSearchOverlay = document.getElementById('mobileSearchOverlay');
+            const mobileSearchBtn = document.getElementById('mobileSearchBtn');
+            
+            // Close mobile menu when clicking outside
+            if (mobileMenu && mobileMenuBtn && !mobileMenuBtn.contains(event.target) && !mobileMenu.contains(event.target)) {
+                mobileMenu.classList.add('hidden');
+            }
+            
+            // Close other dropdowns
+            const megaMenu = document.getElementById('megaMenu');
+            const searchSuggestions = document.getElementById('searchSuggestions');
+            
+            if (megaMenu && !event.target.closest('#navProfile')) {
+                // Hide mega menu with falling animation
+                megaMenu.classList.add('opacity-0', 'scale-95', 'translate-y-2');
+                setTimeout(() => {
+                    megaMenu.classList.add('hidden');
+                }, 300);
+                
+                // Reset arrow
+                const arrow = document.getElementById('megaMenuArrow');
+                if (arrow) {
+                    arrow.style.transform = 'rotate(0deg)';
+                }
+            }
+            
+            if (searchSuggestions && !event.target.closest('.relative')) {
+                searchSuggestions.classList.add('hidden');
+            }
+        });
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('auth_token');
+            window.location.href = '/auth/login-page';
+        }
+    </script>
+</body>

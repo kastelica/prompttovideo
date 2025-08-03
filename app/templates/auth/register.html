@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Register - PromptToVideo{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div>
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                Create your account
+            </h2>
+            <p class="mt-2 text-center text-sm text-gray-600">
+                Or
+                <a href="{{ url_for('auth.login_page') }}" class="font-medium text-primary hover:text-secondary">
+                    sign in to your existing account
+                </a>
+            </p>
+        </div>
+        
+        <!-- Registration Form -->
+        <form id="registerForm" class="mt-8 space-y-6">
+            <div class="space-y-4">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">
+                        Email address
+                    </label>
+                    <input id="email" name="email" type="email" required 
+                           class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
+                           placeholder="Enter your email">
+                </div>
+                
+                <div id="passwordSection" class="hidden">
+                    <label for="password" class="block text-sm font-medium text-gray-700">
+                        Password
+                    </label>
+                    <input id="password" name="password" type="password"
+                           class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
+                           placeholder="Create a password (optional)">
+                    <p class="mt-1 text-xs text-gray-500">Leave blank for passwordless authentication</p>
+                </div>
+                
+                <div>
+                    <label for="referral" class="block text-sm font-medium text-gray-700">
+                        Referral code (optional)
+                    </label>
+                    <input id="referral" name="referral" type="text"
+                           class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
+                           placeholder="Enter referral code">
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <div class="text-sm">
+                    <button type="button" id="toggleAuth" class="font-medium text-primary hover:text-secondary">
+                        Add password
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <button type="submit" id="submitBtn"
+                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                    <span id="submitText">Create account</span>
+                    <div id="loadingSpinner" class="hidden ml-2">
+                        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    </div>
+                </button>
+            </div>
+            
+            <div class="text-center text-sm text-gray-600">
+                <p>By creating an account, you'll get:</p>
+                <ul class="mt-2 space-y-1">
+                    <li>• {{ config.DAILY_FREE_CREDITS or 3 }} free credits daily</li>
+                    <li>• Access to 360p video generation</li>
+                    <li>• Premium 1080p videos with credits</li>
+                </ul>
+            </div>
+        </form>
+        
+        <!-- Status Messages -->
+        <div id="statusMessage" class="hidden mt-4 p-4 rounded-md">
+            <p id="statusText"></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('registerForm');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const passwordSection = document.getElementById('passwordSection');
+    const referralInput = document.getElementById('referral');
+    const toggleAuth = document.getElementById('toggleAuth');
+    const submitBtn = document.getElementById('submitBtn');
+    const submitText = document.getElementById('submitText');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const statusMessage = document.getElementById('statusMessage');
+    const statusText = document.getElementById('statusText');
+    
+    let hasPassword = false;
+    
+    // Toggle password field
+    toggleAuth.addEventListener('click', function() {
+        hasPassword = !hasPassword;
+        
+        if (hasPassword) {
+            passwordSection.classList.remove('hidden');
+            toggleAuth.textContent = 'Remove password';
+            passwordInput.required = true;
+        } else {
+            passwordSection.classList.add('hidden');
+            toggleAuth.textContent = 'Add password';
+            passwordInput.required = false;
+            passwordInput.value = '';
+        }
+    });
+    
+    // Handle form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const email = emailInput.value.trim();
+        const password = passwordInput.value;
+        const referral = referralInput.value.trim();
+        
+        if (!email) {
+            showStatus('Please enter your email address', 'error');
+            return;
+        }
+        
+        if (hasPassword && !password) {
+            showStatus('Please enter a password', 'error');
+            return;
+        }
+        
+        // Show loading state
+        setLoading(true);
+        
+        const formData = {
+            email: email
+        };
+        
+        if (hasPassword && password) {
+            formData.password = password;
+        }
+        
+        if (referral) {
+            formData.referral_code = referral;
+        }
+        
+        try {
+            const response = await fetch('/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                if (data.token) {
+                    // Store token and redirect
+                    localStorage.setItem('auth_token', data.token);
+                    showStatus('Account created successfully! Redirecting...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
+                } else {
+                    showStatus('Account created! Check your email to verify.', 'success');
+                }
+            } else {
+                showStatus(data.error || 'Registration failed', 'error');
+            }
+        } catch (error) {
+            showStatus('Network error. Please try again.', 'error');
+        }
+        
+        setLoading(false);
+    });
+    
+    function setLoading(loading) {
+        submitBtn.disabled = loading;
+        if (loading) {
+            loadingSpinner.classList.remove('hidden');
+        } else {
+            loadingSpinner.classList.add('hidden');
+        }
+    }
+    
+    function showStatus(message, type) {
+        statusText.textContent = message;
+        statusMessage.className = `mt-4 p-4 rounded-md ${type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'}`;
+        statusMessage.classList.remove('hidden');
+        
+        // Hide after 5 seconds
+        setTimeout(() => {
+            statusMessage.classList.add('hidden');
+        }, 5000);
+    }
+});
+</script>
+{% endblock %} 
