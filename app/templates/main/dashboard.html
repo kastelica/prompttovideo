@@ -156,42 +156,43 @@
                             <div class="group bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transform hover:-translate-y-1" data-status="{{ video.status }}">
                 <!-- Thumbnail Section -->
                 <div class="relative overflow-hidden">
-                                         {% if video.get_thumbnail_url() and video.status == 'completed' %}
-                         <a href="{{ url_for('main.watch_video', video_id=video.id, slug=video.slug or video.generate_slug()) }}" 
-                       class="block relative group">
-                             <img src="{{ video.get_thumbnail_url() }}?v={{ video.updated_at.timestamp()|int }}" 
-                                  alt="Video thumbnail" 
-                             class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300">
-                        
-                        <!-- Play Button Overlay -->
-                        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center">
-                            <div class="bg-white bg-opacity-90 rounded-full p-3 transform scale-0 group-hover:scale-100 transition-transform duration-300">
-                                <svg class="w-6 h-6 text-gray-900" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M8 5v14l11-7z"/>
-                                </svg>
+                    {% if video.get_thumbnail_url() and video.status == 'completed' %}
+                        <a href="{{ url_for('main.watch_video', video_id=video.id, slug=video.slug or video.generate_slug()) }}" 
+                           class="block relative group">
+                            <img src="{{ video.get_thumbnail_url() }}" 
+                                 alt="Video thumbnail" 
+                                 class="w-full h-48 object-cover"
+                                 style="display: block !important; visibility: visible !important; opacity: 1 !important; max-width: 100%; height: auto;">
+                            
+                            <!-- Play Button Overlay (temporarily removed to fix thumbnails) -->
+                            <!-- <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center pointer-events-none">
+                                <div class="bg-white bg-opacity-90 rounded-full p-3 pointer-events-auto">
+                                    <svg class="w-6 h-6 text-gray-900" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M8 5v14l11-7z"/>
+                                    </svg>
+                                </div>
+                            </div> -->
+                            
+                            <!-- Quality Badge -->
+                            <div class="absolute top-3 left-3">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full
+                                    {% if video.quality == 'premium' %}bg-gradient-to-r from-purple-500 to-pink-500 text-white
+                                    {% else %}bg-gradient-to-r from-gray-600 to-gray-700 text-white{% endif %}">
+                                    {{ video.quality|title }}
+                                </span>
                             </div>
-                        </div>
-                        
-                        <!-- Quality Badge -->
-                        <div class="absolute top-3 left-3">
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full
-                                {% if video.quality == 'premium' %}bg-gradient-to-r from-purple-500 to-pink-500 text-white
-                                {% else %}bg-gradient-to-r from-gray-600 to-gray-700 text-white{% endif %}">
-                                {{ video.quality|title }}
-                            </span>
-                        </div>
-                        
-                        <!-- Audio Indicator -->
-                        {% if video.quality == 'premium' %}
-                        <div class="absolute top-3 right-3">
-                            <div class="bg-green-500 bg-opacity-90 rounded-full p-2">
-                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.794L4.5 14H2a1 1 0 01-1-1V7a1 1 0 011-1h2.5l3.883-2.794a1 1 0 011.617.794zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-                                </svg>
+                            
+                            <!-- Audio Indicator -->
+                            {% if video.quality == 'premium' %}
+                            <div class="absolute top-3 right-3">
+                                <div class="bg-green-500 bg-opacity-90 rounded-full p-2">
+                                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.794L4.5 14H2a1 1 0 01-1-1V7a1 1 0 011-1h2.5l3.883-2.794a1 1 0 011.617.794zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
                             </div>
-                        </div>
-                        {% endif %}
-                    </a>
+                            {% endif %}
+                        </a>
                      {% else %}
                     <div class="w-full h-48 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center">
                         <div class="text-center">
@@ -532,8 +533,9 @@ async function loadReferralInfo() {
 // Load data when page loads
 document.addEventListener('DOMContentLoaded', function() {
     if (localStorage.getItem('auth_token')) {
-        loadQueueStatus();
-        loadReferralInfo();
+        // Temporarily disabled to fix thumbnail display
+        // loadQueueStatus();
+        // loadReferralInfo();
     }
 });
 
@@ -567,41 +569,41 @@ async function checkStatus(videoId) {
     }
 }
 
-// Auto-refresh processing videos every 15 seconds
-setInterval(() => {
-    const processingVideos = document.querySelectorAll('[data-status="processing"]');
-    const pendingVideos = document.querySelectorAll('[data-status="pending"]');
+// Auto-refresh processing videos every 15 seconds (temporarily disabled)
+// setInterval(() => {
+//     const processingVideos = document.querySelectorAll('[data-status="processing"]');
+//     const pendingVideos = document.querySelectorAll('[data-status="pending"]');
     
-    if (processingVideos.length > 0 || pendingVideos.length > 0) {
-        // Check if any videos have completed by polling their status
-        const videoIds = [];
-        processingVideos.forEach(video => {
-            const videoId = video.querySelector('button[onclick*="checkStatus"]')?.onclick.toString().match(/checkStatus\((\d+)\)/)?.[1];
-            if (videoId) videoIds.push(videoId);
-        });
+//     if (processingVideos.length > 0 || pendingVideos.length > 0) {
+//         // Check if any videos have completed by polling their status
+//         const videoIds = [];
+//         processingVideos.forEach(video => {
+//             const videoId = video.querySelector('button[onclick*="checkStatus"]')?.onclick.toString().match(/checkStatus\((\d+)\)/)?.[1];
+//             if (videoId) videoIds.push(videoId);
+//         });
         
-        if (videoIds.length > 0) {
-            // Check status of processing videos
-            videoIds.forEach(async (videoId) => {
-                try {
-                    const response = await authenticatedFetch(`/api/videos/${videoId}/status`);
-                    if (response && response.ok) {
-                        const data = await response.json();
-                        if (data.status === 'completed') {
-                            // Reload page to show completed video
-                            window.location.reload();
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error checking video status:', error);
-                }
-            });
-        } else {
-            // Fallback: reload page if we can't check individual statuses
-            window.location.reload();
-        }
-    }
-}, 15000);
+//         if (videoIds.length > 0) {
+//             // Check status of processing videos
+//             videoIds.forEach(async (videoId) => {
+//                 try {
+//                     const response = await authenticatedFetch(`/api/videos/${videoId}/status`);
+//                     if (response && response.ok) {
+//                         const data = await response.json();
+//                         if (data.status === 'completed') {
+//                             // Reload page to show completed video
+//                             window.location.reload();
+//                         }
+//                     }
+//                 } catch (error) {
+//                     console.error('Error checking video status:', error);
+//                 }
+//             });
+//         } else {
+//             // Fallback: reload page if we can't check individual statuses
+//             window.location.reload();
+//         }
+//     }
+// }, 15000);
 
 // Share functionality
 function toggleShareMenu(videoId) {

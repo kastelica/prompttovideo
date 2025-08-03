@@ -254,6 +254,10 @@ class Video(db.Model):
     def get_thumbnail_url(self):
         """Get the thumbnail URL, with fallback to dynamic generation."""
         if self.thumbnail_url:
+            # If thumbnail_url is a GCS URL, convert it to public URL
+            if self.thumbnail_url.startswith('gs://'):
+                from app.gcs_utils import generate_signed_url
+                return generate_signed_url(self.thumbnail_url, duration_days=365)
             return self.thumbnail_url
         if not self.gcs_url:
             return None

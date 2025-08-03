@@ -610,7 +610,6 @@ def estimate_wait_time(priority):
 
 @bp.route('/api/queue/status')
 @login_required
-@rate_limit()
 def queue_status():
     """Get current queue status and user's position"""
     user = User.query.get(request.user_id)
@@ -659,6 +658,22 @@ def rate_limit_status():
     return jsonify({
         'rate_limit_info': user.get_rate_limit_info(),
         'subscription_tier': user.subscription_tier
+    })
+
+@bp.route('/api/referrals/stats')
+@login_required
+def referral_stats():
+    """Get user's referral statistics"""
+    user = User.query.get(request.user_id)
+    
+    # Get referral stats
+    stats = user.get_referral_stats()
+    
+    return jsonify({
+        'total_referrals': stats['referred_users'],
+        'total_earned': stats['total_earned'],
+        'referral_code': stats['referral_code'],
+        'referral_url': stats['referral_url']
     })
 
 @bp.route('/api/docs')
