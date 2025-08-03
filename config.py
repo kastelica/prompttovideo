@@ -80,6 +80,16 @@ class ProductionConfig(Config):
     # Cloud SQL configuration
     CLOUD_SQL_CONNECTION_NAME = os.environ.get('CLOUD_SQL_CONNECTION_NAME')
     
+    # SQLAlchemy connection pooling for Cloud Run
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': 5,
+        'pool_recycle': 3600,  # Recycle connections after 1 hour
+        'pool_pre_ping': True,  # Verify connections before use
+        'pool_timeout': 20,     # Wait up to 20 seconds for a connection
+        'max_overflow': 10,     # Allow up to 10 additional connections
+        'echo': False
+    }
+    
     @classmethod
     def init_app(cls, app):
         # Production-specific initialization

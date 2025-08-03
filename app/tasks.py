@@ -327,4 +327,4 @@ def get_queue_stats():
         }
     except Exception as e:
         print(f"❌ Error getting queue stats: {e}")
-        return {} 
+        return {}
