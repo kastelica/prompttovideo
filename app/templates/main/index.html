@@ -143,35 +143,11 @@
                 <div class="bg-gray-200 h-32 sm:h-48 relative overflow-hidden">
                     {% if video.status == 'completed' %}
                         {% if video.thumbnail_url %}
-                            <!-- Show thumbnail if available -->
+                            <!-- Show thumbnail - same simple approach as watch.html -->
                             <img src="{{ video.thumbnail_url }}" 
                                  alt="{{ video.get_seo_title() }}" 
                                  class="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-                                 loading="lazy"
-                                 onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPlZpZGVvPC90ZXh0Pjwvc3ZnPg=='">
-                        {% elif video.gcs_signed_url %}
-                            <!-- GCS video - simple approach with poster -->
-                            <video 
-                                src="{{ video.gcs_signed_url }}" 
-                                poster="{{ video.gcs_signed_url }}#t=0.1"
-                                class="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-                                preload="metadata"
-                                muted
-                                playsinline
-                                style="pointer-events: none;"
-                                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                            </video>
-                            <!-- Fallback placeholder if video fails to load -->
-                            <div class="w-full h-full bg-gray-300 dark:bg-dark-600 flex items-center justify-center relative overflow-hidden hidden" 
-                                 style="background: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f0f0f0 75%), linear-gradient(-45deg, transparent 75%, #f0f0f0 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;">
-                                <svg class="w-8 h-8 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M8 5v14l11-7z"/>
-                                </svg>
-                                <!-- Video prompt overlay -->
-                                <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 text-xs">
-                                    {{ video.prompt[:30] }}{% if video.prompt|length > 30 %}...{% endif %}
-                                </div>
-                            </div>
+                                 loading="lazy">
                         {% else %}
                             <!-- Fallback to generic video placeholder -->
                             <div class="w-full h-full bg-gray-300 dark:bg-dark-600 flex items-center justify-center" 

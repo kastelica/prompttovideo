@@ -56,47 +56,5 @@ jobs:
         flags: unittests
         name: codecov-umbrella
 
-  build:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-    
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        push: true
-        tags: |
-          prompttovideo/web:latest
-          prompttovideo/web:${{ github.sha }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-  deploy-staging:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
-    
-    steps:
-    - name: Deploy to staging
-      run: |
-        echo "Deploying to staging environment"
-        # Add your staging deployment logic here
-
-  deploy-production:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    environment: production
-    
-    steps:
-    - name: Deploy to production
-      run: |
-        echo "Deploying to production environment"
-        # Add your production deployment logic here 
+  # Removed build job - deployment is handled by deploy.yml workflow
+  # Removed deploy-staging and deploy-production jobs - deployment is handled by deploy.yml workflow 
