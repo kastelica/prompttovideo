@@ -92,17 +92,72 @@ def _generate_video_task(video_id):
             db.session.commit()
             return False
         
-        # Step 3: Download video
-        print(f"📋 Step 3/6: Downloading video...")
-        local_path = download_video_to_local(operation_name, video_id, video_url)
-        if not local_path:
-            print(f"❌ Failed to download video")
+        # Step 3: Process video data
+        print(f"📋 Step 3/6: Processing video data...")
+        
+        if isinstance(video_url, str) and video_url.startswith('gs://'):
+            # Video is a GCS URI - download it
+            local_path = download_video_to_local(operation_name, video_id, video_url)
+            if not local_path:
+                print(f"❌ Failed to download video from GCS")
+                video.status = 'failed'
+                video.error_message = 'Failed to download video from GCS'
+                db.session.commit()
+                return False
+            print(f"✅ Video downloaded from GCS to: {local_path}")
+            
+        elif isinstance(video_url, str) and len(video_url) > 1000:
+            # Video is base64-encoded data - save it directly
+            import base64
+            try:
+                os.makedirs('videos', exist_ok=True)
+                local_path = f"videos/{video_id}.mp4"
+                
+                # Decode base64 and save to file
+                video_bytes = base64.b64decode(video_url)
+                with open(local_path, 'wb') as f:
+                    f.write(video_bytes)
+                
+                print(f"✅ Base64 video data saved to: {local_path} ({len(video_bytes)} bytes)")
+            except Exception as e:
+                print(f"❌ Failed to save base64 video data: {e}")
+                video.status = 'failed'
+                video.error_message = f'Failed to save video data: {e}'
+                db.session.commit()
+                return False
+                
+        elif isinstance(video_url, dict):
+            # Video is a dict with video data
+            if 'bytesBase64Encoded' in video_url:
+                import base64
+                try:
+                    os.makedirs('videos', exist_ok=True)
+                    local_path = f"videos/{video_id}.mp4"
+                    
+                    # Decode base64 and save to file
+                    video_bytes = base64.b64decode(video_url['bytesBase64Encoded'])
+                    with open(local_path, 'wb') as f:
+                        f.write(video_bytes)
+                    
+                    print(f"✅ Video data from dict saved to: {local_path} ({len(video_bytes)} bytes)")
+                except Exception as e:
+                    print(f"❌ Failed to save video data from dict: {e}")
+                    video.status = 'failed'
+                    video.error_message = f'Failed to save video data: {e}'
+                    db.session.commit()
+                    return False
+            else:
+                print(f"❌ Unknown video data format in dict: {list(video_url.keys())}")
+                video.status = 'failed'
+                video.error_message = 'Unknown video data format'
+                db.session.commit()
+                return False
+        else:
+            print(f"❌ Unknown video data format: {type(video_url)}")
             video.status = 'failed'
-            video.error_message = 'Failed to download video'
+            video.error_message = 'Unknown video data format'
             db.session.commit()
             return False
-        
-        print(f"✅ Video downloaded to: {local_path}")
         
         # Step 4: Upload to GCS
         print(f"📋 Step 4/6: Uploading to Google Cloud Storage...")
@@ -273,16 +328,55 @@ def check_veo_status(operation_name):
             
             if data.get('done', False):
                 # Operation is complete
-                response_data = data.get('response', {})
-                videos = response_data.get('videos', [])
+                print("✅ Operation completed, checking for video data...")
                 
+                # Try different response structures
+                response_data = data.get('response', {})
+                print(f"📄 Response type: {response_data.get('@type', 'Unknown')}")
+                
+                # Check for videos array in response
+                videos = response_data.get('videos', [])
                 if videos and len(videos) > 0:
-                    video_uri = videos[0].get('gcsUri')
-                    if video_uri:
-                        print(f"✅ Video generation completed: {video_uri}")
+                    video_data = videos[0]
+                    
+                    # Check for GCS URI first
+                    if 'gcsUri' in video_data:
+                        video_uri = video_data['gcsUri']
+                        print(f"✅ Video generation completed (GCS): {video_uri}")
+                        return video_uri
+                    
+                    # Check for base64-encoded video data
+                    elif 'bytesBase64Encoded' in video_data:
+                        video_base64 = video_data['bytesBase64Encoded']
+                        print(f"✅ Video generation completed (Base64): {len(video_base64)} chars")
+                        return video_base64
+                    
+                    # Check for mime type
+                    elif 'mimeType' in video_data:
+                        print(f"✅ Video generation completed (MIME: {video_data['mimeType']})")
+                        # Return the entire video data object for further processing
+                        return video_data
+                    
+                    else:
+                        print(f"❌ Unknown video format: {list(video_data.keys())}")
+                        return None
+                
+                # Check for direct video data in response
+                if 'gcsUri' in response_data:
+                    video_uri = response_data['gcsUri']
+                    print(f"✅ Video generation completed (direct): {video_uri}")
+                    return video_uri
+                
+                # Check for video data in different locations
+                if 'video' in response_data:
+                    video_data = response_data['video']
+                    if isinstance(video_data, dict) and 'gcsUri' in video_data:
+                        video_uri = video_data['gcsUri']
+                        print(f"✅ Video generation completed (nested): {video_uri}")
                         return video_uri
                 
                 print("❌ No video found in completed operation")
+                print(f"🔍 Available keys in response_data: {list(response_data.keys())}")
                 return None
             else:
                 # Operation still running
