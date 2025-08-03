@@ -131,7 +131,7 @@ def _generate_video_task(video_id):
         video.completed_at = datetime.utcnow()
         video.processing_duration = (video.completed_at - video.processing_started_at).total_seconds()
         db.session.commit()
-        
+                
         print(f"🎉 Video {video_id} completed successfully!")
         print(f"⏱️ Processing time: {video.processing_duration:.2f} seconds")
         
@@ -280,7 +280,7 @@ def upload_file_to_gcs(file_path, blob_name):
             return None
         
         # Initialize GCS client
-        storage_client = storage.Client()
+            storage_client = storage.Client()
         bucket = storage_client.bucket(bucket_name)
         blob = bucket.blob(blob_name)
         
