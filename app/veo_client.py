@@ -56,7 +56,9 @@ class VeoClient:
                     logger.error(f"   ❌ File '{gac}' DOES NOT exist. This is the likely cause of the error.")
                     # Unset the environment variable to fall back to default service account
                     logger.info("   🔄 Unsetting GOOGLE_APPLICATION_CREDENTIALS to use default service account")
-                    os.environ.pop('GOOGLE_APPLICATION_CREDENTIALS', None)
+                    if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
+                        del os.environ['GOOGLE_APPLICATION_CREDENTIALS']
+                    logger.info("   ✅ GOOGLE_APPLICATION_CREDENTIALS environment variable removed.")
             else:
                 logger.info("✅ VEO: GOOGLE_APPLICATION_CREDENTIALS is NOT set. This is correct for Cloud Run.")
             # ===== END DEBUGGING =====
