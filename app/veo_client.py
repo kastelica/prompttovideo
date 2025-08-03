@@ -59,69 +59,124 @@ class VeoClient:
                 logger.info("✅ VEO: GOOGLE_APPLICATION_CREDENTIALS is NOT set. This is correct for Cloud Run.")
             # ===== END DEBUGGING =====
 
-            logger.info("🔑 VEO: Getting token using Application Default Credentials (google.auth.default)")
-            
             # Try different authentication methods
             credentials = None
             
-            # Method 1: Try Application Default Credentials
+            # Method 1: Try Application Default Credentials (but don't refresh yet)
             try:
+                logger.info("🔑 VEO: Method 1 - Trying google.auth.default...")
                 credentials, project = google.auth.default(
                     scopes=[
                         'https://www.googleapis.com/auth/cloud-platform',
                         'https://www.googleapis.com/auth/aiplatform.googleapis.com'
                     ]
                 )
-                logger.info("✅ VEO: Successfully obtained credentials using google.auth.default")
+                logger.info(f"✅ VEO: Successfully obtained credentials using google.auth.default (type: {type(credentials).__name__})")
+                
+                # Try to refresh the token
+                try:
+                    logger.info("🔄 VEO: Attempting to refresh credentials...")
+                    credentials.refresh(Request())
+                    logger.info("✅ VEO: Successfully refreshed credentials")
+                except Exception as refresh_error:
+                    logger.warning(f"⚠️ VEO: Credential refresh failed: {refresh_error}")
+                    logger.info("🔄 VEO: Trying alternative authentication methods...")
+                    credentials = None  # Reset to try fallback methods
+                    
             except Exception as e:
                 logger.warning(f"⚠️ VEO: google.auth.default failed: {e}")
-                
-                # Method 2: Try Compute Engine credentials (for Cloud Run)
-                if is_cloud_run:
+                credentials = None
+            
+            # Method 2: Try Compute Engine credentials (for Cloud Run)
+            if not credentials and is_cloud_run:
+                try:
+                    logger.info("🔑 VEO: Method 2 - Trying Compute Engine credentials...")
+                    from google.auth.compute_engine import Credentials
+                    credentials = Credentials()
+                    logger.info("✅ VEO: Successfully obtained credentials using Compute Engine credentials")
+                    
+                    # Try to refresh
                     try:
-                        from google.auth.compute_engine import Credentials
-                        credentials = Credentials()
-                        logger.info("✅ VEO: Successfully obtained credentials using Compute Engine credentials")
-                    except Exception as e2:
-                        logger.warning(f"⚠️ VEO: Compute Engine credentials failed: {e2}")
+                        credentials.refresh(Request())
+                        logger.info("✅ VEO: Successfully refreshed Compute Engine credentials")
+                    except Exception as refresh_error:
+                        logger.warning(f"⚠️ VEO: Compute Engine credential refresh failed: {refresh_error}")
                         
-                        # Method 3: Try service account credentials
-                        try:
-                            from google.oauth2 import service_account
-                            # Try to use the default service account
-                            credentials = service_account.Credentials.from_service_account_info(
-                                {},  # Empty dict to use default
-                                scopes=[
-                                    'https://www.googleapis.com/auth/cloud-platform',
-                                    'https://www.googleapis.com/auth/aiplatform.googleapis.com'
-                                ]
-                            )
-                            logger.info("✅ VEO: Successfully obtained credentials using service account")
-                        except Exception as e3:
-                            logger.error(f"❌ VEO: All authentication methods failed: {e3}")
-                            return None
+                except Exception as e2:
+                    logger.warning(f"⚠️ VEO: Compute Engine credentials failed: {e2}")
+                    credentials = None
+            
+            # Method 3: Try service account credentials
+            if not credentials:
+                try:
+                    logger.info("🔑 VEO: Method 3 - Trying service account credentials...")
+                    from google.oauth2 import service_account
+                    # Try to use the default service account
+                    credentials = service_account.Credentials.from_service_account_info(
+                        {},  # Empty dict to use default
+                        scopes=[
+                            'https://www.googleapis.com/auth/cloud-platform',
+                            'https://www.googleapis.com/auth/aiplatform.googleapis.com'
+                        ]
+                    )
+                    logger.info("✅ VEO: Successfully obtained credentials using service account")
+                    
+                    # Try to refresh
+                    try:
+                        credentials.refresh(Request())
+                        logger.info("✅ VEO: Successfully refreshed service account credentials")
+                    except Exception as refresh_error:
+                        logger.warning(f"⚠️ VEO: Service account credential refresh failed: {refresh_error}")
+                        
+                except Exception as e3:
+                    logger.error(f"❌ VEO: Service account credentials failed: {e3}")
+                    credentials = None
+            
+            # Method 4: Try direct metadata server access (last resort)
+            if not credentials and is_cloud_run:
+                try:
+                    logger.info("🔑 VEO: Method 4 - Trying direct metadata server access...")
+                    import requests
+                    
+                    # Try to get token directly from metadata server
+                    metadata_url = "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token"
+                    headers = {"Metadata-Flavor": "Google"}
+                    params = {
+                        "scopes": "https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/aiplatform.googleapis.com"
+                    }
+                    
+                    response = requests.get(metadata_url, headers=headers, params=params, timeout=10)
+                    if response.status_code == 200:
+                        token_data = response.json()
+                        token = token_data.get('access_token')
+                        if token:
+                            logger.info("✅ VEO: Successfully obtained token directly from metadata server")
+                            return token
+                        else:
+                            logger.warning("⚠️ VEO: No access_token in metadata response")
+                    else:
+                        logger.warning(f"⚠️ VEO: Metadata server returned {response.status_code}")
+                        
+                except Exception as e4:
+                    logger.warning(f"⚠️ VEO: Direct metadata access failed: {e4}")
             
             if not credentials:
                 logger.error("❌ VEO: No credentials obtained from any method")
                 return None
             
-            # Refresh the token to ensure it's valid
-            try:
-                credentials.refresh(Request())
-                logger.info("✅ VEO: Successfully refreshed credentials")
-            except Exception as e:
-                logger.warning(f"⚠️ VEO: Credential refresh failed, trying to use existing token: {e}")
-            
+            # Check if we have a valid token
             if credentials.valid and credentials.token:
-                logger.info("✅ VEO: Successfully obtained token using Application Default Credentials.")
+                logger.info("✅ VEO: Successfully obtained valid token.")
                 logger.info(f"🔍 VEO: Token preview: {str(credentials.token)[:20]}...")
                 return credentials.token
             else:
-                logger.error("❌ VEO: Application Default Credentials are not valid.")
+                logger.error("❌ VEO: Credentials are not valid or have no token.")
+                logger.error(f"🔍 VEO: Credentials valid: {credentials.valid if credentials else 'None'}")
+                logger.error(f"🔍 VEO: Has token: {bool(credentials.token) if credentials else 'None'}")
                 return None
                 
         except Exception as e:
-            logger.error(f"❌ VEO: Failed to get Application Default Credentials: {e}")
+            logger.error(f"❌ VEO: Failed to get authentication token: {e}")
             import traceback
             logger.error(f"❌ VEO: Traceback: {traceback.format_exc()}")
             return None
