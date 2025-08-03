@@ -687,22 +687,104 @@
     border-color: #3b82f6 !important;
 }
 
-/* Tab buttons */
+/* Tab buttons - Enhanced styling */
 .dark .tab-btn {
     background-color: transparent !important;
     color: #94a3b8 !important;
     border-color: transparent !important;
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+    padding: 1rem 1.5rem !important;
+    border-radius: 0.75rem 0.75rem 0 0 !important;
+    transition: all 0.3s ease !important;
+    position: relative !important;
+    min-height: 4rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 
 .dark .tab-btn:hover {
     background-color: #334155 !important;
     color: #e2e8f0 !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
 }
 
 .dark .tab-btn.active {
-    background-color: #3b82f6 !important;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
     color: #ffffff !important;
     border-color: #3b82f6 !important;
+    transform: translateY(-4px) !important;
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4) !important;
+    font-weight: 700 !important;
+    font-size: 1.15rem !important;
+}
+
+.dark .tab-btn.active::before {
+    content: '' !important;
+    position: absolute !important;
+    bottom: -1px !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 2px !important;
+    background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%) !important;
+    border-radius: 1px !important;
+}
+
+.dark .tab-btn svg {
+    width: 1.5rem !important;
+    height: 1.5rem !important;
+    margin-right: 0.75rem !important;
+    transition: all 0.3s ease !important;
+}
+
+.dark .tab-btn:hover svg {
+    transform: scale(1.1) !important;
+}
+
+.dark .tab-btn.active svg {
+    transform: scale(1.15) !important;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) !important;
+}
+
+/* Tab count badges */
+.dark .tab-btn span[id$="Count"] {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 0.875rem !important;
+    padding: 0.375rem 0.75rem !important;
+    border-radius: 9999px !important;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3) !important;
+    margin-left: 0.75rem !important;
+    transition: all 0.3s ease !important;
+}
+
+.dark .tab-btn:hover span[id$="Count"] {
+    transform: scale(1.1) !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4) !important;
+}
+
+.dark .tab-btn.active span[id$="Count"] {
+    background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%) !important;
+    color: #1d4ed8 !important;
+    transform: scale(1.15) !important;
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Tab container styling */
+.dark .border-b.border-gray-200.dark\:border-dark-700 {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+    border-bottom: 2px solid #475569 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Tab navigation container */
+.dark nav[aria-label="Tabs"] {
+    padding: 0.5rem 2rem !important;
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+    border-radius: 0.75rem 0.75rem 0 0 !important;
 }
 
 /* Profile stats cards */
@@ -1123,4 +1205,100 @@
 /* Fix for any remaining black backgrounds */
 .dark .bg-black {
     background-color: #0f172a !important;
+}
+
+/* ===== LIGHT MODE TAB ENHANCEMENTS ===== */
+
+/* Light mode tab buttons - Enhanced styling */
+.tab-btn {
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+    padding: 1rem 1.5rem !important;
+    border-radius: 0.75rem 0.75rem 0 0 !important;
+    transition: all 0.3s ease !important;
+    position: relative !important;
+    min-height: 4rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.tab-btn:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+.tab-btn.active {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+    color: #ffffff !important;
+    transform: translateY(-4px) !important;
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3) !important;
+    font-weight: 700 !important;
+    font-size: 1.15rem !important;
+}
+
+.tab-btn.active::before {
+    content: '' !important;
+    position: absolute !important;
+    bottom: -1px !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 2px !important;
+    background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%) !important;
+    border-radius: 1px !important;
+}
+
+.tab-btn svg {
+    width: 1.5rem !important;
+    height: 1.5rem !important;
+    margin-right: 0.75rem !important;
+    transition: all 0.3s ease !important;
+}
+
+.tab-btn:hover svg {
+    transform: scale(1.1) !important;
+}
+
+.tab-btn.active svg {
+    transform: scale(1.15) !important;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2)) !important;
+}
+
+/* Light mode tab count badges */
+.tab-btn span[id$="Count"] {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 0.875rem !important;
+    padding: 0.375rem 0.75rem !important;
+    border-radius: 9999px !important;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2) !important;
+    margin-left: 0.75rem !important;
+    transition: all 0.3s ease !important;
+}
+
+.tab-btn:hover span[id$="Count"] {
+    transform: scale(1.1) !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+}
+
+.tab-btn.active span[id$="Count"] {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+    color: #1d4ed8 !important;
+    transform: scale(1.15) !important;
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Light mode tab container styling */
+.border-b.border-gray-200 {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+    border-bottom: 2px solid #cbd5e1 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Light mode tab navigation container */
+nav[aria-label="Tabs"] {
+    padding: 0.5rem 2rem !important;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+    border-radius: 0.75rem 0.75rem 0 0 !important;
 } 
