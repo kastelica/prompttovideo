@@ -104,7 +104,7 @@ class TestPhase7Features:
     
     def test_developer_api_generate_video(self, client, user, auth_headers):
         """Test developer API video generation"""
-        with patch('app.tasks.generate_video_task.delay'):
+        with patch('app.tasks.generate_video_task'):
             response = client.post('/api/v1/generate', 
                 headers=auth_headers,
                 json={

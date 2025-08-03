@@ -166,7 +166,8 @@ def generate_video():
                 try:
                     generate_video_task(video.id)
                 except Exception as e:
-                    current_app.logger.error(f"❌ BACKEND: Background thread error: {e}")
+                    # Use print instead of current_app.logger in background thread
+                    print(f"❌ BACKEND: Background thread error: {e}")
             
             thread = threading.Thread(target=run_video_generation)
             thread.daemon = True
