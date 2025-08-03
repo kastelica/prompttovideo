@@ -35,11 +35,16 @@ def index():
     from app.gcs_utils import generate_signed_url
     for video in featured_videos:
         try:
-            # Generate signed URL for thumbnail based on video ID
-            thumbnail_gcs_url = f"gs://{current_app.config['GCS_BUCKET_NAME']}/thumbnails/{video.id}.jpg"
-            signed_thumbnail_url = generate_signed_url(thumbnail_gcs_url)
-            if signed_thumbnail_url:
-                video.thumbnail_url = signed_thumbnail_url
+            # The video.thumbnail_url from the DB already holds the full GCS path.
+            # We just need to generate a fresh signed URL for it.
+            if video.thumbnail_url and video.thumbnail_url.startswith('gs://'):
+                signed_thumbnail_url = generate_thumbnail_signed_url(video.thumbnail_url)
+                if signed_thumbnail_url:
+                    # Overwrite the gcs path with the temporary signed URL for display
+                    video.thumbnail_url = signed_thumbnail_url
+            else:
+                # Fallback for older records or if URL is missing
+                video.thumbnail_url = None # Ensure no broken image links
         except Exception as e:
             current_app.logger.warning(f"Failed to generate signed URL for thumbnail {video.id}: {e}")
     

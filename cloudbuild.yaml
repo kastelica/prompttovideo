@@ -38,6 +38,7 @@ steps:
       - '80'
       - '--max-instances'
       - '5'
+      - '--clear-env-vars' # Explicitly clear any inherited credentials
       - '--set-env-vars'
       - 'FLASK_ENV=production,DATABASE_URL=postgresql://prompttovideo:PromptToVideo2024!@/prompttovideo?host=/cloudsql/$PROJECT_ID:us-central1:prompttovideo-db,GCS_BUCKET_NAME=prompt-veo-videos,GOOGLE_CLOUD_PROJECT_ID=$PROJECT_ID,DAILY_FREE_CREDITS=3,CREDIT_COST_FREE=1,CREDIT_COST_PREMIUM=3'
       - '--add-cloudsql-instances'
@@ -71,6 +72,7 @@ steps:
       - '10'
       - '--min-instances'
       - '1'
+      - '--clear-env-vars' # Explicitly clear any inherited credentials
       - '--set-env-vars'
       - 'FLASK_ENV=production,DATABASE_URL=postgresql://prompttovideo:PromptToVideo2024!@/prompttovideo?host=/cloudsql/$PROJECT_ID:us-central1:prompttovideo-db,GCS_BUCKET_NAME=prompt-veo-videos,GOOGLE_CLOUD_PROJECT_ID=$PROJECT_ID,DAILY_FREE_CREDITS=3,CREDIT_COST_FREE=1,CREDIT_COST_PREMIUM=3,CELERY_WORKER_CONCURRENCY=4'
       - '--add-cloudsql-instances'
@@ -80,4 +82,4 @@ steps:
 
 images:
   - 'gcr.io/$PROJECT_ID/prompttovideo:latest'
-  - 'gcr.io/$PROJECT_ID/celery-worker:latest' 
+  - 'gcr.io/$PROJECT_ID/celery-worker:latest'
