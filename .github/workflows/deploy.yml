@@ -51,7 +51,11 @@ jobs:
           --timeout 300 \
           --concurrency 80 \
           --max-instances 5 \
-          --set-env-vars DATABASE_URL="postgresql://prompttovideo:PromptToVideo2024!@/prompttovideo?host=/cloudsql/${{ env.PROJECT_ID }}:us-central1:prompttovideo-db,GCS_BUCKET_NAME=prompt-veo-videos,VEO_MOCK_MODE=false,FLASK_ENV=production,GOOGLE_APPLICATION_CREDENTIALS=/app/veo.json" \
+          --set-env-vars DATABASE_URL="postgresql://prompttovideo:PromptToVideo2024!@/prompttovideo?host=/cloudsql/${{ env.PROJECT_ID }}:us-central1:prompttovideo-db" \
+          --update-env-vars GCS_BUCKET_NAME="prompt-veo-videos" \
+          --update-env-vars VEO_MOCK_MODE="false" \
+          --update-env-vars FLASK_ENV="production" \
+          --update-env-vars GOOGLE_APPLICATION_CREDENTIALS="/app/veo.json" \
           --add-cloudsql-instances ${{ env.PROJECT_ID }}:us-central1:prompttovideo-db \
           --service-account prompttovideo-runner@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
     
