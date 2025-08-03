@@ -31,18 +31,17 @@ def index():
     # Limit to 9 total videos
     featured_videos = featured_videos[:9]
     
-    # Generate signed URLs for thumbnails that don't have them
+    # Generate signed URLs for thumbnails (regenerate for all to ensure they're not expired)
     from app.gcs_utils import generate_signed_url
     for video in featured_videos:
-        if not video.thumbnail_url:
-            try:
-                # Generate signed URL for thumbnail based on video ID
-                thumbnail_gcs_url = f"gs://{current_app.config['GCS_BUCKET_NAME']}/thumbnails/{video.id}.jpg"
-                signed_thumbnail_url = generate_signed_url(thumbnail_gcs_url)
-                if signed_thumbnail_url:
-                    video.thumbnail_url = signed_thumbnail_url
-            except Exception as e:
-                current_app.logger.warning(f"Failed to generate signed URL for thumbnail {video.id}: {e}")
+        try:
+            # Generate signed URL for thumbnail based on video ID
+            thumbnail_gcs_url = f"gs://{current_app.config['GCS_BUCKET_NAME']}/thumbnails/{video.id}.jpg"
+            signed_thumbnail_url = generate_signed_url(thumbnail_gcs_url)
+            if signed_thumbnail_url:
+                video.thumbnail_url = signed_thumbnail_url
+        except Exception as e:
+            current_app.logger.warning(f"Failed to generate signed URL for thumbnail {video.id}: {e}")
     
     prompt_packs = PromptPack.query.filter_by(featured=True).limit(3).all()
     

@@ -69,8 +69,25 @@ def generate_thumbnail_signed_url(thumbnail_path):
         bucket_name = parts[0]
         blob_name = parts[1]
         
-        # Initialize GCS client
-        storage_client = storage.Client()
+        # Initialize GCS client with explicit credentials (same as generate_signed_url)
+        creds_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+        if not creds_path:
+            # Hardcode the path to veo.json
+            creds_path = os.path.join(os.getcwd(), 'veo.json')
+            current_app.logger.info(f"Using hardcoded credentials path for thumbnail GCS: {creds_path}")
+        
+        if os.path.exists(creds_path):
+            from google.oauth2 import service_account
+            credentials = service_account.Credentials.from_service_account_file(
+                creds_path,
+                scopes=['https://www.googleapis.com/auth/cloud-platform']
+            )
+            storage_client = storage.Client(credentials=credentials)
+            current_app.logger.info(f"Thumbnail GCS client initialized with credentials from: {creds_path}")
+        else:
+            current_app.logger.warning(f"Credentials file not found for thumbnail GCS: {creds_path}")
+            storage_client = storage.Client()
+        
         bucket = storage_client.bucket(bucket_name)
         blob = bucket.blob(blob_name)
         

@@ -865,6 +865,28 @@
     background-color: #065f46 !important;
 }
 
+.dark .text-green-800 {
+    color: #bbf7d0 !important;
+}
+
+/* Status badge improvements */
+.dark .bg-green-100.text-green-800 {
+    background-color: #065f46 !important;
+    color: #bbf7d0 !important;
+    font-size: 0.75rem !important;
+    padding: 0.25rem 0.5rem !important;
+    border-radius: 0.375rem !important;
+    font-weight: 500 !important;
+}
+
+/* Light mode status badge improvements */
+.bg-green-100.text-green-800 {
+    font-size: 0.75rem !important;
+    padding: 0.25rem 0.5rem !important;
+    border-radius: 0.375rem !important;
+    font-weight: 500 !important;
+}
+
 .dark .text-green-600 {
     color: #a7f3d0 !important;
 }
