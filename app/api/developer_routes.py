@@ -80,6 +80,25 @@ def generate_video_api():
         from app import create_app
         import os
         
+        # DUPLICATE PREVENTION: Check if video is already being processed
+        if video.status == 'processing':
+            return jsonify({
+                'success': True,
+                'video_id': video.id,
+                'status': 'processing',
+                'message': 'Video is already being processed',
+                'credits_remaining': user.credits
+            }), 200
+        
+        if video.veo_job_id:
+            return jsonify({
+                'success': True,
+                'video_id': video.id,
+                'status': 'processing',
+                'message': 'Video generation already started',
+                'credits_remaining': user.credits
+            }), 200
+        
         def run_video_generation():
             try:
                 # Always create a new app context for background thread

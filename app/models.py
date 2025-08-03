@@ -243,12 +243,23 @@ class Video(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     prompt = db.Column(db.Text, nullable=False)
     quality = db.Column(db.String(10), default='free')  # free, premium
-    status = db.Column(db.String(20), default='pending')  # pending, processing, completed, failed
+    status = db.Column(db.String(20), default='pending')  # pending, processing, completed, failed, content_violation
     veo_job_id = db.Column(db.String(255))
     gcs_url = db.Column(db.String(2000))
     gcs_signed_url = db.Column(db.String(2000))
+    thumbnail_gcs_url = db.Column(db.String(2000))  # Direct GCS URL for thumbnail
+    thumbnail_url = db.Column(db.String(2000))  # Public URL for thumbnail
     duration = db.Column(db.Integer)  # in seconds
-    thumbnail_url = db.Column(db.String(2000))
+    
+    def get_thumbnail_url(self):
+        """Get the thumbnail URL, with fallback to dynamic generation."""
+        if self.thumbnail_url:
+            return self.thumbnail_url
+        if not self.gcs_url:
+            return None
+        from app.gcs_utils import generate_signed_thumbnail_url
+        return generate_signed_thumbnail_url(self.gcs_url)
+
     slug = db.Column(db.String(255), unique=True)
     public = db.Column(db.Boolean, default=True)
     views = db.Column(db.Integer, default=0)

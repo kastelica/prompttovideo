@@ -9,14 +9,14 @@
 <meta property="og:description" content="{{ video.get_seo_description() }}">
 <meta property="og:type" content="video">
 <meta property="og:url" content="{{ request.url }}">
-{% if video.thumbnail_url %}
-<meta property="og:image" content="{{ video.thumbnail_url }}">
+{% if video.get_thumbnail_url() %}
+<meta property="og:image" content="{{ video.get_thumbnail_url() }}">
 {% endif %}
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ video.get_seo_title() }}">
 <meta name="twitter:description" content="{{ video.get_seo_description() }}">
-{% if video.thumbnail_url %}
-<meta name="twitter:image" content="{{ video.thumbnail_url }}">
+{% if video.get_thumbnail_url() %}
+<meta name="twitter:image" content="{{ video.get_thumbnail_url() }}">
 {% endif %}
 {% endblock %}
 
@@ -32,7 +32,7 @@
                     class="w-full h-auto"
                     controls
                     preload="metadata"
-                    poster="{{ video.thumbnail_url or '' }}"
+                    poster="{{ video.get_thumbnail_url() or '' }}"
                     autoplay
                 >
                     <source src="{{ video.gcs_signed_url }}" type="video/mp4">
@@ -138,9 +138,9 @@
                     <div class="mb-4 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
                         <div class="flex items-center space-x-3">
                             <div class="w-16 h-12 bg-gray-200 dark:bg-dark-600 rounded overflow-hidden flex-shrink-0">
-                                {% if video.thumbnail_url %}
-                                <img src="{{ video.thumbnail_url }}" alt="Video thumbnail" class="w-full h-full object-cover">
-                                {% else %}
+                                {% if video.get_thumbnail_url() %}
+<img src="{{ video.get_thumbnail_url() }}" alt="Video thumbnail" class="w-full h-full object-cover">
+{% else %}
                                 <div class="w-full h-full flex items-center justify-center">
                                     <svg class="w-6 h-6 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
@@ -548,9 +548,9 @@
                    class="block hover:shadow-md transition-shadow rounded-lg overflow-hidden group">
                     <div class="aspect-video bg-gray-200 relative">
                         {% if related_video.status == 'completed' and related_video.gcs_signed_url %}
-                            {% if related_video.thumbnail_url %}
+                            {% if related_video.get_thumbnail_url() %}
                                 <!-- Show thumbnail if available -->
-                                <img src="{{ related_video.thumbnail_url }}" alt="{{ related_video.get_seo_title() }}" class="w-full h-full object-cover">
+                                <img src="{{ related_video.get_thumbnail_url() }}" alt="{{ related_video.get_seo_title() }}" class="w-full h-full object-cover">
                             {% else %}
                                 <!-- Show video preview if no thumbnail -->
                                 <video class="w-full h-full object-cover" preload="metadata" muted>

@@ -31,23 +31,6 @@ def index():
     # Limit to 9 total videos
     featured_videos = featured_videos[:9]
     
-    # Generate signed URLs for thumbnails (regenerate for all to ensure they're not expired)
-    from app.gcs_utils import generate_signed_url
-    for video in featured_videos:
-        try:
-            # The video.thumbnail_url from the DB already holds the full GCS path.
-            # We just need to generate a fresh signed URL for it.
-            if video.thumbnail_url and video.thumbnail_url.startswith('gs://'):
-                signed_thumbnail_url = generate_thumbnail_signed_url(video.thumbnail_url)
-                if signed_thumbnail_url:
-                    # Overwrite the gcs path with the temporary signed URL for display
-                    video.thumbnail_url = signed_thumbnail_url
-            else:
-                # Fallback for older records or if URL is missing
-                video.thumbnail_url = None # Ensure no broken image links
-        except Exception as e:
-            current_app.logger.warning(f"Failed to generate signed URL for thumbnail {video.id}: {e}")
-    
     prompt_packs = PromptPack.query.filter_by(featured=True).limit(3).all()
     
     return render_template('main/index.html', 
@@ -169,6 +152,23 @@ def generate_video():
         try:
             import threading
             from app.tasks import generate_video_task
+            
+            # DUPLICATE PREVENTION: Check if video is already being processed
+            if video.status == 'processing':
+                current_app.logger.warning(f"⚠️ BACKEND: Video {video.id} is already being processed. Skipping duplicate thread.")
+                return jsonify({
+                    'success': True,
+                    'video_id': video.id,
+                    'message': 'Video is already being processed'
+                }), 200
+            
+            if video.veo_job_id:
+                current_app.logger.warning(f"⚠️ BACKEND: Video {video.id} already has Veo job ID: {video.veo_job_id}. Skipping duplicate thread.")
+                return jsonify({
+                    'success': True,
+                    'video_id': video.id,
+                    'message': 'Video generation already started'
+                }), 200
             
             current_app.logger.info("🚀 BACKEND: Starting video generation with background thread")
             

@@ -44,6 +44,19 @@ def _generate_video_task(video_id):
             print(f"❌ User {video.user_id} not found")
             return False
         
+        # DUPLICATE PREVENTION: Check if video is already being processed
+        if video.status == 'processing':
+            print(f"⚠️ Video {video_id} is already being processed. Skipping duplicate generation.")
+            return True  # Return True to avoid marking as failed
+        
+        if video.status == 'completed':
+            print(f"✅ Video {video_id} is already completed. Skipping duplicate generation.")
+            return True
+        
+        if video.veo_job_id:
+            print(f"⚠️ Video {video_id} already has a Veo job ID: {video.veo_job_id}. Skipping duplicate generation.")
+            return True
+        
         print(f"🎬 Starting video generation for video {video_id}")
         
         video.status = 'processing'
@@ -82,13 +95,19 @@ def _generate_video_task(video_id):
                 video_url = status_result.get('video_url')
                 print(f"✅ Video completed: {video_url}")
                 break
+            elif status_result and status_result.get('status') == 'content_violation':
+                print(f"🚫 Content policy violation detected: {status_result.get('details', 'Unknown violation')}")
+                video.status = 'content_violation'
+                video.error_message = f"Content policy violation: {status_result.get('details', 'Your prompt violated content guidelines. Please try rephrasing it.')}"
+                db.session.commit()
+                return False
             elif status_result and status_result.get('status') == 'failed':
                 print(f"❌ Video generation failed during polling: {status_result.get('error')}")
                 video.status = 'failed'
                 video.error_message = status_result.get('error', 'Polling failed')
                 db.session.commit()
                 return False
-
+            
             print(f"⏳ Video still processing... (attempt {attempts + 1}/{max_attempts})")
             time.sleep(5)
             attempts += 1
@@ -132,28 +151,59 @@ def _generate_video_task(video_id):
         print(f"✅ Video uploaded to GCS: {final_gcs_url}")
         video.gcs_url = final_gcs_url
         
-        # Step 5: Generate thumbnail with organized naming
-        print(f"📋 Step 5/6: Generating thumbnail...")
-        thumbnail_url = generate_video_thumbnail_from_gcs(final_gcs_url, video_id, video.quality, video.prompt)
-        if thumbnail_url:
-            video.thumbnail_url = thumbnail_url
-            print(f"✅ Thumbnail generated: {thumbnail_url}")
+        # Generate signed URL for video access
+        from app.gcs_utils import generate_signed_url
+        signed_url = generate_signed_url(final_gcs_url, duration_days=7)
+        if signed_url:
+            video.gcs_signed_url = signed_url
+            print(f"✅ Signed URL generated: {signed_url[:100]}...")
         else:
-            print(f"⚠️ Failed to generate thumbnail, using fallback")
-            video.thumbnail_url = create_text_thumbnail_fallback(video_id)
+            print(f"⚠️ Failed to generate signed URL")
         
-        # Step 6: Update video status
-        print(f"📋 Step 6/6: Finalizing video...")
+        # Step 5: Clean up original Veo API file
+        print(f"📋 Step 5/6: Cleaning up original Veo API file...")
+        try:
+            from app.gcs_utils import delete_gcs_file
+            if video_url and video_url != final_gcs_url:
+                print(f"🗑️ Deleting original Veo API file: {video_url}")
+                delete_gcs_file(video_url)
+                print(f"✅ Original Veo API file deleted")
+            else:
+                print(f"ℹ️ No original file to clean up")
+        except Exception as e:
+            print(f"⚠️ Failed to clean up original file: {e}")
+        
+        # Step 6: Generate thumbnail
+        print(f"📋 Step 6/7: Generating thumbnail...")
+        try:
+            thumbnail_url = generate_video_thumbnail_from_gcs(final_gcs_url, video_id, video.quality, video.prompt)
+            if thumbnail_url:
+                print(f"✅ Thumbnail generated: {thumbnail_url}")
+                # Save thumbnail URL to video record
+                video.thumbnail_gcs_url = thumbnail_url
+                # Generate public URL for the thumbnail
+                from app.gcs_utils import generate_signed_url
+                thumbnail_public_url = generate_signed_url(thumbnail_url, duration_days=365)
+                if thumbnail_public_url:
+                    video.thumbnail_url = thumbnail_public_url
+                    print(f"✅ Thumbnail public URL generated: {thumbnail_public_url[:100]}...")
+            else:
+                print(f"⚠️ Failed to generate thumbnail, will use fallback")
+        except Exception as e:
+            print(f"⚠️ Error generating thumbnail: {e}")
+        
+        # Step 7: Update video status
+        print(f"📋 Step 7/7: Finalizing video...")
         video.status = 'completed'
         video.completed_at = datetime.utcnow()
         video.processing_duration = (video.completed_at - video.processing_started_at).total_seconds()
         db.session.commit()
                 
         print(f"🎉 Video {video_id} completed successfully!")
-        
+                
         # Send completion email
         try:
-            send_video_complete_email(user, video)
+            send_video_complete_email(user.email, video.id, final_gcs_url)
             print(f"📧 Completion email sent to {user.email}")
         except Exception as e:
             print(f"⚠️ Failed to send completion email: {e}")

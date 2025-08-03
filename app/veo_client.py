@@ -18,7 +18,7 @@ except ImportError:
 
 class VeoClient:
     """Client for the Google Veo API, simplified for robust authentication."""
-
+    
     def __init__(self):
         """Initialize VeoClient with project configuration."""
         self.project_id = os.environ.get('GOOGLE_CLOUD_PROJECT', 'dirly-466300')
@@ -36,6 +36,28 @@ class VeoClient:
             return None
 
         try:
+            # ===== START DEBUGGING =====
+            logger.info("🕵️ VEO: Starting authentication process. Dumping all environment variables.")
+            for key, value in os.environ.items():
+                # Be careful not to log sensitive keys
+                if 'KEY' in key.upper() or 'SECRET' in key.upper() or 'PASSWORD' in key.upper():
+                    logger.info(f"  - ENV: {key}=**********")
+                else:
+                    logger.info(f"  - ENV: {key}={value}")
+            
+            gac = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+            if gac:
+                logger.warning(f"🚨 VEO: GOOGLE_APPLICATION_CREDENTIALS is SET to: {gac}")
+                logger.warning("   This will override the default service account on Cloud Run.")
+                logger.warning(f"   Checking if the file '{gac}' exists...")
+                if os.path.exists(gac):
+                    logger.info(f"   ✅ File '{gac}' exists.")
+                else:
+                    logger.error(f"   ❌ File '{gac}' DOES NOT exist. This is the likely cause of the error.")
+            else:
+                logger.info("✅ VEO: GOOGLE_APPLICATION_CREDENTIALS is NOT set. This is correct for Cloud Run.")
+            # ===== END DEBUGGING =====
+
             logger.info("🔑 VEO: Getting token using Application Default Credentials (google.auth.default)")
             credentials, project = google.auth.default(
                 scopes=[
@@ -60,7 +82,7 @@ class VeoClient:
             import traceback
             logger.error(f"❌ VEO: Traceback: {traceback.format_exc()}")
             return None
-
+    
     def generate_video(self, prompt, quality='free', duration=30):
         """Generate video using Veo API."""
         if quality == 'premium':
@@ -79,12 +101,12 @@ class VeoClient:
             error_msg = "Failed to get a valid authentication token."
             logger.error(f"❌ VEO: {error_msg}")
             return {'success': False, 'error': error_msg}
-
+        
         headers = {
             'Authorization': f'Bearer {token}',
             'Content-Type': 'application/json'
         }
-
+        
         request_data = {
             "instances": [{"prompt": prompt}],
             "parameters": {
@@ -96,14 +118,14 @@ class VeoClient:
                 "storageUri": f"gs://{get_gcs_bucket_name()}/videos/"
             }
         }
-
+        
         if has_audio and quality == 'premium':
             request_data["parameters"]["generateAudio"] = True
         if quality == 'premium':
             request_data["parameters"]["resolution"] = "1080p"
 
         url = f"https://{self.location}-aiplatform.googleapis.com/v1/projects/{self.project_id}/locations/{self.location}/publishers/google/models/{self.model_id}:predictLongRunning"
-        
+            
         try:
             response = requests.post(url, headers=headers, json=request_data, timeout=30)
             
@@ -120,18 +142,18 @@ class VeoClient:
                 error_msg = f"API request failed: {response.status_code} - {response.text}"
                 logger.error(f"❌ VEO: {error_msg}")
                 return {'success': False, 'error': error_msg}
-
+                
         except Exception as e:
             logger.error(f"❌ VEO: Exception in generate_video: {e}")
             return {'success': False, 'error': str(e)}
-
+    
     def check_video_status(self, operation_name):
         """Check the status of a video generation operation."""
         if 'veo-3.0' in operation_name:
             self.model_id = 'veo-3.0-generate-001'
         else:
             self.model_id = 'veo-2.0-generate-001'
-
+        
         token = self._get_auth_token()
         if not token:
             error_msg = "Failed to get a valid authentication token for status check."
@@ -142,7 +164,7 @@ class VeoClient:
             'Authorization': f'Bearer {token}',
             'Content-Type': 'application/json'
         }
-
+        
         fetch_url = f"https://{self.location}-aiplatform.googleapis.com/v1/projects/{self.project_id}/locations/{self.location}/publishers/google/models/{self.model_id}:fetchPredictOperation"
         request_data = {"operationName": operation_name}
 
@@ -161,6 +183,20 @@ class VeoClient:
                     
                     if 'response' in result:
                         response_data = result['response']
+                        
+                        # Check for content policy violations
+                        if 'raiMediaFilteredCount' in response_data and response_data['raiMediaFilteredCount'] > 0:
+                            filtered_reasons = response_data.get('raiMediaFilteredReasons', [])
+                            reason_text = filtered_reasons[0] if filtered_reasons else "Content policy violation"
+                            logger.warning(f"🚫 VEO: Content policy violation detected: {reason_text}")
+                            return {
+                                'success': False, 
+                                'status': 'content_violation', 
+                                'error': 'Content policy violation',
+                                'details': reason_text,
+                                'filtered_count': response_data['raiMediaFilteredCount']
+                            }
+                        
                         if 'videos' in response_data and response_data['videos']:
                             video_data = response_data['videos'][0]
                             video_url = video_data.get('gcsUri')
@@ -170,11 +206,20 @@ class VeoClient:
                     # Fallback if structure is unexpected
                     logger.warning("Operation done but no video URL found in expected path. Trying fallback.")
                     operation_id = operation_name.split('/')[-1]
-                    expected_gcs_url = f"gs://{get_gcs_bucket_name()}/videos/{operation_id}.mp4"
+                    
+                    # Try the standard Veo API folder structure first
+                    expected_gcs_url = f"gs://{get_gcs_bucket_name()}/videos/{operation_id}/sample_0.mp4"
                     
                     if check_gcs_file_exists(expected_gcs_url):
                         logger.info(f"✅ Found video file in GCS via fallback: {expected_gcs_url}")
                         return {'success': True, 'status': 'completed', 'video_url': expected_gcs_url}
+                    
+                    # Try alternative path structure
+                    expected_gcs_url_alt = f"gs://{get_gcs_bucket_name()}/videos/{operation_id}.mp4"
+                    
+                    if check_gcs_file_exists(expected_gcs_url_alt):
+                        logger.info(f"✅ Found video file in GCS via alternative fallback: {expected_gcs_url_alt}")
+                        return {'success': True, 'status': 'completed', 'video_url': expected_gcs_url_alt}
 
                     logger.error("❌ VEO: Operation complete but no video URL found.")
                     return {'success': False, 'status': 'failed', 'error': 'No video data in completed operation.'}
@@ -184,7 +229,7 @@ class VeoClient:
                 error_msg = f"Status check failed: {response.status_code} - {response.text}"
                 logger.error(f"❌ VEO: {error_msg}")
                 return {'success': False, 'error': error_msg}
-
+                
         except Exception as e:
             logger.error(f"❌ VEO: Error checking video status: {e}")
             return {'success': False, 'error': str(e)}
