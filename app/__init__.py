@@ -59,9 +59,7 @@ def create_app(config_name=None):
     # Import models to ensure they are registered with SQLAlchemy
     from app import models
     
-    # Initialize Celery early to ensure it's available for imports
-    from app.tasks import init_celery
-    init_celery(app)
+    # Celery removed - using background threads instead
     
     # Register blueprints
     from app.main import bp as main_bp
