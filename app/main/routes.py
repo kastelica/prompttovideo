@@ -258,8 +258,15 @@ def dashboard():
 
 @bp.route('/watch/<int:video_id>-<slug>')
 def watch_video(video_id, slug):
-    """Public video watch page"""
+    """Public video watch page - allows users to see their own videos"""
+    # First try to find public video
     video = Video.query.filter_by(id=video_id, slug=slug, public=True, status='completed').first()
+    
+    # If not found, check if user is logged in and owns the video
+    if not video:
+        from flask_login import current_user
+        if current_user.is_authenticated:
+            video = Video.query.filter_by(id=video_id, slug=slug, user_id=current_user.id, status='completed').first()
     
     if not video:
         return render_template('errors/404.html'), 404

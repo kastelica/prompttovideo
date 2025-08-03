@@ -171,7 +171,7 @@
                         {% if video.public %}
                             <span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">Public</span>
                         {% else %}
-                            <span class="bg-gray-500 text-white text-xs px-2 py-1 rounded-full">Private</span>
+                            <span class="bg-gray-500 text-white text-xs px-2 py-1 rounded-full" title="This video is private and only you can see it">Private</span>
                         {% endif %}
                     </div>
                     
@@ -227,6 +227,14 @@
                                     class="px-3 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors">
                                 Watch
                             </button>
+                            {% if not video.public %}
+                            <div class="text-xs text-gray-500 flex items-center">
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Only you can see this
+                            </div>
+                            {% endif %}
                             {% endif %}
                             <button onclick="editVideo({{ video.id }})" 
                                     class="px-3 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors">

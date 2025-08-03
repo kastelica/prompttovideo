@@ -250,7 +250,7 @@ class Video(db.Model):
     duration = db.Column(db.Integer)  # in seconds
     thumbnail_url = db.Column(db.String(2000))
     slug = db.Column(db.String(255), unique=True)
-    public = db.Column(db.Boolean, default=False)
+    public = db.Column(db.Boolean, default=True)
     views = db.Column(db.Integer, default=0)
     title = db.Column(db.String(200))  # SEO-friendly title
     description = db.Column(db.Text)   # SEO description
