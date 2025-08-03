@@ -383,9 +383,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const loginPrompt = document.createElement('div');
         loginPrompt.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
         loginPrompt.innerHTML = `
-            <div class="bg-white rounded-lg p-8 max-w-md mx-4 text-center">
-                <h2 class="text-2xl font-bold mb-4">Login Required</h2>
-                <p class="text-gray-600 mb-6">Please log in to generate videos.</p>
+            <div class="bg-white dark:bg-dark-800 rounded-lg p-8 max-w-md mx-4 text-center">
+                <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Login Required</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-6">Please log in to generate videos.</p>
                 <div class="space-y-3">
                     <a href="/auth/login-page" class="block w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-secondary transition-colors">
                         Log In
@@ -613,7 +613,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log(`🎨 AI SUGGEST: Creating suggestion ${index + 1}:`, suggestion);
             
             const suggestionDiv = document.createElement('div');
-            suggestionDiv.className = 'p-3 bg-white border border-gray-200 rounded-md hover:bg-gray-50 transition-colors';
+            suggestionDiv.className = 'p-3 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-md hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors';
             suggestionDiv.innerHTML = `
                 <div class="space-y-3">
                     <div class="flex items-start justify-between">
@@ -990,7 +990,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     ` : ''}
                     
                     <div class="max-w-xs lg:max-w-md">
-                        <div class="${isCurrentUser ? 'bg-blue-500 text-white' : 'bg-white border border-gray-200'} rounded-2xl px-4 py-2 shadow-sm">
+                        <div class="${isCurrentUser ? 'bg-blue-500 text-white' : 'bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600'} rounded-2xl px-4 py-2 shadow-sm">
                             ${!isCurrentUser ? `<div class="text-xs font-medium text-gray-600 mb-1">${message.user.email}</div>` : ''}
                             <div class="text-sm">${escapeHtml(message.content)}</div>
                             ${message.edited ? '<div class="text-xs opacity-75 mt-1">(edited)</div>' : ''}
@@ -1210,7 +1210,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const emojis = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏'];
         
         const picker = document.createElement('div');
-        picker.className = 'absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-2 flex space-x-1';
+        picker.className = 'absolute z-50 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg shadow-lg p-2 flex space-x-1';
         picker.innerHTML = emojis.map(emoji => 
             `<button onclick="selectEmoji('${emoji}', ${id}, '${type}')" class="hover:bg-gray-100 p-1 rounded text-lg">${emoji}</button>`
         ).join('');

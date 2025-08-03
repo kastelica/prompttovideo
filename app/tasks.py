@@ -8,6 +8,8 @@ import time
 from google.cloud import storage
 from datetime import datetime, timedelta
 import os
+from google.auth import default
+from google.auth.transport.requests import Request
 
 def generate_video_task(video_id):
     """Generate video using Veo API"""
@@ -55,16 +57,16 @@ def _generate_video_task(video_id):
         
         # Step 1: Call Veo API
         print(f"📋 Step 1/6: Calling Veo API...")
-        job_id = call_veo_api(video.prompt, video.quality)
-        if not job_id:
-            print(f"❌ Failed to get job ID from Veo API")
+        operation_name = call_veo_api(video.prompt, video.quality)
+        if not operation_name:
+            print(f"❌ Failed to get operation name from Veo API")
             video.status = 'failed'
             video.error_message = 'Failed to start video generation'
             db.session.commit()
             return False
         
-        print(f"✅ Veo API job created: {job_id}")
-        video.veo_job_id = job_id
+        print(f"✅ Veo API operation created: {operation_name}")
+        video.veo_job_id = operation_name
         db.session.commit()
         
         # Step 2: Poll for completion
@@ -74,7 +76,7 @@ def _generate_video_task(video_id):
         attempts = 0
         
         while attempts < max_attempts:
-            video_url = check_veo_status(job_id)
+            video_url = check_veo_status(operation_name)
             if video_url:
                 print(f"✅ Video completed: {video_url}")
                 break
@@ -92,7 +94,7 @@ def _generate_video_task(video_id):
         
         # Step 3: Download video
         print(f"📋 Step 3/6: Downloading video...")
-        local_path = download_video_to_local(job_id, video_id, video_url)
+        local_path = download_video_to_local(operation_name, video_id, video_url)
         if not local_path:
             print(f"❌ Failed to download video")
             video.status = 'failed'
@@ -131,7 +133,7 @@ def _generate_video_task(video_id):
         video.completed_at = datetime.utcnow()
         video.processing_duration = (video.completed_at - video.processing_started_at).total_seconds()
         db.session.commit()
-                
+        
         print(f"🎉 Video {video_id} completed successfully!")
         print(f"⏱️ Processing time: {video.processing_duration:.2f} seconds")
         
@@ -154,52 +156,72 @@ def _generate_video_task(video_id):
             pass
         return False
 
+def get_gcloud_access_token():
+    """Get Google Cloud access token using Google Auth library"""
+    try:
+        # Use default credentials (will use gcloud auth)
+        credentials, project = default()
+        
+        # Refresh the token if needed
+        if not credentials.valid:
+            credentials.refresh(Request())
+        
+        return credentials.token
+    except Exception as e:
+        print(f"❌ Failed to get gcloud access token: {e}")
+        return None
+
 def call_veo_api(prompt, quality):
     """Call Google Veo API to generate video"""
     try:
-        # Get API key from environment
-        api_key = os.environ.get('VEO_API_KEY')
-        if not api_key:
-            print("❌ VEO_API_KEY not found in environment")
+        # Get access token from gcloud
+        access_token = get_gcloud_access_token()
+        if not access_token:
+            print("❌ Failed to get Google Cloud access token")
             return None
         
+        # Get project ID from environment or use default
+        project_id = os.environ.get('GOOGLE_CLOUD_PROJECT', 'dirly-466300')
+        print(f"🔧 Using Google Cloud project: {project_id}")
+        
+        # Choose model based on quality
+        model_id = "veo-3.0-generate-001" if quality == 'premium' else "veo-3.0-fast-generate-001"
+        
         # API endpoint
-        url = "https://generativelanguage.googleapis.com/v1/models/veo:generateContent"
+        url = f"https://us-central1-aiplatform.googleapis.com/v1/projects/{project_id}/locations/us-central1/publishers/google/models/{model_id}:predictLongRunning"
         
         # Request payload
         payload = {
-            "contents": [{
-                "parts": [{
-                    "text": prompt
-                }]
+            "instances": [{
+                "prompt": prompt
             }],
-            "generationConfig": {
-                "temperature": 0.4,
-                "topK": 32,
-                "topP": 1,
-                "maxOutputTokens": 2048,
+            "parameters": {
+                "durationSeconds": 8,
+                "sampleCount": 1,
+                "aspectRatio": "16:9",
+                "enhancePrompt": True,
+                "generateAudio": True,
+                "personGeneration": "allow_adult"
             }
         }
         
         # Add quality-specific settings
         if quality == 'premium':
-            payload["generationConfig"]["temperature"] = 0.2
-            payload["generationConfig"]["topK"] = 16
+            payload["parameters"]["resolution"] = "1080p"
         
         # Make API request
         headers = {
-            "Content-Type": "application/json",
-            "x-goog-api-key": api_key
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
         }
         
         response = requests.post(url, json=payload, headers=headers, timeout=30)
         
         if response.status_code == 200:
             data = response.json()
-            # Extract job ID from response
-            # Note: This is a simplified version - actual Veo API response structure may differ
-            job_id = data.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
-            return job_id if job_id else 'mock_job_id'
+            operation_name = data.get('name')
+            print(f"✅ Veo API request successful: {operation_name}")
+            return operation_name
         else:
             print(f"❌ Veo API error: {response.status_code} - {response.text}")
             return None
@@ -208,25 +230,75 @@ def call_veo_api(prompt, quality):
         print(f"❌ Error calling Veo API: {e}")
         return None
 
-def check_veo_status(job_id):
-    """Check Veo API job status"""
+def check_veo_status(operation_name):
+    """Check Veo API operation status"""
     try:
-        # For now, return a mock URL after a short delay
-        # In production, this would poll the actual Veo API
-        time.sleep(2)
-        return f"https://example.com/video_{job_id}.mp4"
+        # Get access token from gcloud
+        access_token = get_gcloud_access_token()
+        if not access_token:
+            print("❌ Failed to get Google Cloud access token")
+            return None
+        
+        # Get project ID from environment or use default
+        project_id = os.environ.get('GOOGLE_CLOUD_PROJECT', 'dirly-466300')
+        print(f"🔧 Using Google Cloud project: {project_id}")
+        
+        # Extract model ID from operation name
+        # operation_name format: projects/PROJECT_ID/locations/us-central1/publishers/google/models/MODEL_ID/operations/OPERATION_ID
+        parts = operation_name.split('/')
+        model_id = parts[-3]  # MODEL_ID is the third to last part
+        
+        # API endpoint for checking operation status
+        url = f"https://us-central1-aiplatform.googleapis.com/v1/projects/{project_id}/locations/us-central1/publishers/google/models/{model_id}:fetchPredictOperation"
+        
+        # Request payload
+        payload = {
+            "operationName": operation_name
+        }
+        
+        # Make API request
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+        
+        response = requests.post(url, json=payload, headers=headers, timeout=30)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            if data.get('done', False):
+                # Operation is complete
+                response_data = data.get('response', {})
+                videos = response_data.get('videos', [])
+                
+                if videos and len(videos) > 0:
+                    video_uri = videos[0].get('gcsUri')
+                    if video_uri:
+                        print(f"✅ Video generation completed: {video_uri}")
+                        return video_uri
+                
+                print("❌ No video found in completed operation")
+                return None
+            else:
+                # Operation still running
+                return None
+        else:
+            print(f"❌ Veo API status check error: {response.status_code} - {response.text}")
+            return None
+            
     except Exception as e:
         print(f"❌ Error checking Veo status: {e}")
         return None
 
-def download_video_to_local(job_id, video_id, video_url=None):
+def download_video_to_local(operation_name, video_id, video_url=None):
     """Download video to local storage"""
     try:
         # Create videos directory if it doesn't exist
         os.makedirs('videos', exist_ok=True)
         
         # For now, create a mock video file
-        # In production, this would download from the actual URL
+        # In production, this would download from the actual GCS URL
         local_path = f"videos/{video_id}.mp4"
         
         # Create a simple mock video file
@@ -280,7 +352,7 @@ def upload_file_to_gcs(file_path, blob_name):
             return None
         
         # Initialize GCS client
-            storage_client = storage.Client()
+        storage_client = storage.Client()
         bucket = storage_client.bucket(bucket_name)
         blob = bucket.blob(blob_name)
         
