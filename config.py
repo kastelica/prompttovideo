@@ -26,7 +26,7 @@ class Config:
     STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET')
     
     # Google Cloud Storage
-    GCS_BUCKET_NAME = os.environ.get('GCS_BUCKET_NAME') or 'prompttovideo-videos'
+    GCS_BUCKET_NAME = os.environ.get('GCS_BUCKET_NAME') or 'prompt-veo-videos'
     # For Cloud Run, use default service account credentials
     # GOOGLE_APPLICATION_CREDENTIALS is not needed in Cloud Run
     

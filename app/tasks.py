@@ -159,9 +159,20 @@ def _generate_video_task(video_id):
             db.session.commit()
             return False
         
-        # Step 4: Upload to GCS
+        # Step 4: Upload to GCS with organized naming
         print(f"📋 Step 4/6: Uploading to Google Cloud Storage...")
-        gcs_url = upload_file_to_gcs(local_path, f"videos/{video_id}.mp4")
+        
+        # Generate organized filename
+        from app.gcs_utils import generate_video_filename
+        gcs_path, filename, gcs_url = generate_video_filename(
+            video_id=video_id,
+            quality=video.quality,
+            prompt=video.prompt,
+            user_id=video.user_id
+        )
+        
+        print(f"📁 Using organized path: {gcs_path}")
+        gcs_url = upload_file_to_gcs(local_path, gcs_path)
         if not gcs_url:
             print(f"❌ Failed to upload to GCS")
             video.status = 'failed'
@@ -172,9 +183,9 @@ def _generate_video_task(video_id):
         print(f"✅ Video uploaded to GCS: {gcs_url}")
         video.video_url = gcs_url
         
-        # Step 5: Generate thumbnail
+        # Step 5: Generate thumbnail with organized naming
         print(f"📋 Step 5/6: Generating thumbnail...")
-        thumbnail_url = generate_video_thumbnail(gcs_url, video_id)
+        thumbnail_url = generate_video_thumbnail_from_gcs(gcs_url, video_id, video.quality, video.prompt)
         if thumbnail_url:
             video.thumbnail_url = thumbnail_url
             print(f"✅ Thumbnail generated: {thumbnail_url}")
@@ -430,6 +441,145 @@ def generate_video_thumbnail(video_url, video_id):
         return f"https://via.placeholder.com/320x180/000000/FFFFFF?text=Video+{video_id}"
     except Exception as e:
         print(f"❌ Error generating thumbnail: {e}")
+        return None
+
+def generate_video_thumbnail_from_gcs(gcs_url, video_id, quality='free', prompt=None):
+    """
+    Generate thumbnail from GCS video URL and upload to GCS
+    
+    Args:
+        gcs_url: GCS URL of the video
+        video_id: Database video ID
+        quality: Video quality
+        prompt: Video prompt (optional)
+    
+    Returns:
+        GCS URL of the generated thumbnail or None if failed
+    """
+    try:
+        from app.gcs_utils import generate_thumbnail_filename, get_gcs_bucket_name
+        from app.video_processor import VideoProcessor
+        import tempfile
+        import os
+        
+        print(f"🖼️ Generating thumbnail for video {video_id} from GCS: {gcs_url}")
+        
+        # Generate organized thumbnail filename
+        thumbnail_path, thumbnail_filename, thumbnail_gcs_url = generate_thumbnail_filename(
+            video_id, quality, prompt
+        )
+        
+        print(f"📁 Thumbnail will be saved to: {thumbnail_gcs_url}")
+        
+        # Download video from GCS to temporary file
+        temp_video_path = download_video_from_gcs(gcs_url)
+        if not temp_video_path:
+            print(f"❌ Failed to download video from GCS: {gcs_url}")
+            return None
+        
+        print(f"✅ Video downloaded to temp file: {temp_video_path}")
+        
+        # Generate thumbnail using VideoProcessor
+        temp_thumbnail_path = tempfile.mktemp(suffix='.jpg')
+        
+        try:
+            # Use VideoProcessor to generate thumbnail
+            success = VideoProcessor.generate_thumbnail(
+                video_path=temp_video_path,
+                output_path=temp_thumbnail_path,
+                time_offset="00:00:05"  # Take thumbnail at 5 seconds
+            )
+            
+            if not success:
+                print(f"❌ Failed to generate thumbnail using VideoProcessor")
+                return None
+            
+            print(f"✅ Thumbnail generated: {temp_thumbnail_path}")
+            
+            # Upload thumbnail to GCS
+            thumbnail_gcs_url = upload_file_to_gcs(temp_thumbnail_path, thumbnail_path)
+            
+            if thumbnail_gcs_url:
+                print(f"✅ Thumbnail uploaded to GCS: {thumbnail_gcs_url}")
+                return thumbnail_gcs_url
+            else:
+                print(f"❌ Failed to upload thumbnail to GCS")
+                return None
+                
+        finally:
+            # Clean up temporary files
+            if os.path.exists(temp_video_path):
+                os.unlink(temp_video_path)
+                print(f"🧹 Cleaned up temp video file")
+            
+            if os.path.exists(temp_thumbnail_path):
+                os.unlink(temp_thumbnail_path)
+                print(f"🧹 Cleaned up temp thumbnail file")
+        
+    except Exception as e:
+        print(f"❌ Error generating thumbnail from GCS: {e}")
+        import traceback
+        print(f"❌ Full traceback: {traceback.format_exc()}")
+        return None
+
+def download_video_from_gcs(gcs_url):
+    """
+    Download video from GCS to temporary local file
+    
+    Args:
+        gcs_url: GCS URL of the video
+    
+    Returns:
+        Path to temporary video file or None if failed
+    """
+    try:
+        from app.gcs_utils import parse_gcs_filename
+        import tempfile
+        import os
+        
+        # Parse GCS URL
+        parsed = parse_gcs_filename(gcs_url)
+        bucket_name = parsed['bucket_name']
+        file_path = parsed['full_path']
+        
+        print(f"📥 Downloading from bucket: {bucket_name}, path: {file_path}")
+        
+        # Initialize GCS client
+        creds_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+        if not creds_path:
+            creds_path = os.path.join(os.getcwd(), 'veo.json')
+        
+        if os.path.exists(creds_path):
+            from google.oauth2 import service_account
+            credentials = service_account.Credentials.from_service_account_file(
+                creds_path,
+                scopes=['https://www.googleapis.com/auth/cloud-platform']
+            )
+            storage_client = storage.Client(credentials=credentials)
+        else:
+            storage_client = storage.Client()
+        
+        bucket = storage_client.bucket(bucket_name)
+        blob = bucket.blob(file_path)
+        
+        # Check if blob exists
+        if not blob.exists():
+            print(f"❌ Video not found in GCS: {gcs_url}")
+            return None
+        
+        # Create temporary file
+        temp_file = tempfile.NamedTemporaryFile(suffix='.mp4', delete=False)
+        temp_path = temp_file.name
+        temp_file.close()
+        
+        # Download blob to temporary file
+        blob.download_to_filename(temp_path)
+        
+        print(f"✅ Video downloaded to: {temp_path} ({os.path.getsize(temp_path)} bytes)")
+        return temp_path
+        
+    except Exception as e:
+        print(f"❌ Error downloading video from GCS: {e}")
         return None
 
 def create_text_thumbnail_fallback(video_id):
