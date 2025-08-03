@@ -189,8 +189,14 @@ def _generate_video_task(video_id):
                     print(f"✅ Thumbnail public URL generated: {thumbnail_public_url[:100]}...")
             else:
                 print(f"⚠️ Failed to generate thumbnail, will use fallback")
+                # Set a placeholder thumbnail URL
+                video.thumbnail_url = f"https://via.placeholder.com/320x180/000000/FFFFFF?text=Video+{video_id}"
+                print(f"✅ Set placeholder thumbnail: {video.thumbnail_url}")
         except Exception as e:
             print(f"⚠️ Error generating thumbnail: {e}")
+            # Set a placeholder thumbnail URL as fallback
+            video.thumbnail_url = f"https://via.placeholder.com/320x180/000000/FFFFFF?text=Video+{video_id}"
+            print(f"✅ Set fallback placeholder thumbnail: {video.thumbnail_url}")
         
         # Step 7: Update video status
         print(f"📋 Step 7/7: Finalizing video...")
@@ -243,27 +249,50 @@ def generate_video_thumbnail_from_gcs(gcs_url, video_id, quality='free', prompt=
         
         temp_video_path = download_video_from_gcs(gcs_url)
         if not temp_video_path:
+            print(f"❌ Failed to download video from GCS")
             return None
         
         temp_thumbnail_path = tempfile.mktemp(suffix='.jpg')
         
         try:
-            success = VideoProcessor.generate_thumbnail(temp_video_path, temp_thumbnail_path)
+            # Try different time offsets if the first one fails
+            time_offsets = ["00:00:05", "00:00:10", "00:00:15", "00:00:30"]
+            
+            for offset in time_offsets:
+                print(f"🔄 Trying thumbnail generation at {offset}...")
+                success = VideoProcessor.generate_thumbnail(temp_video_path, temp_thumbnail_path, offset)
+                if success:
+                    print(f"✅ Thumbnail generated successfully at {offset}")
+                    break
+                else:
+                    print(f"⚠️ Failed to generate thumbnail at {offset}, trying next...")
+            
             if not success:
-                print(f"❌ Failed to generate thumbnail using VideoProcessor")
+                print(f"❌ Failed to generate thumbnail at all time offsets")
                 return None
             
+            # Upload thumbnail to GCS
             thumbnail_gcs_url = upload_file_to_gcs(temp_thumbnail_path, thumbnail_path)
-            return thumbnail_gcs_url
+            if thumbnail_gcs_url:
+                print(f"✅ Thumbnail uploaded to GCS: {thumbnail_gcs_url}")
+                return thumbnail_gcs_url
+            else:
+                print(f"❌ Failed to upload thumbnail to GCS")
+                return None
                 
         finally:
+            # Clean up temporary files
             if os.path.exists(temp_video_path):
                 os.unlink(temp_video_path)
+                print(f"🧹 Cleaned up temporary video file")
             if os.path.exists(temp_thumbnail_path):
                 os.unlink(temp_thumbnail_path)
+                print(f"🧹 Cleaned up temporary thumbnail file")
         
     except Exception as e:
         print(f"❌ Error generating thumbnail from GCS: {e}")
+        import traceback
+        print(f"❌ Traceback: {traceback.format_exc()}")
         return None
 
 def download_video_from_gcs(gcs_url):
