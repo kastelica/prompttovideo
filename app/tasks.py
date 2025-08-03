@@ -2,6 +2,7 @@ from flask import current_app
 from app import create_app, db
 from app.models import Video, User, CreditTransaction
 from app.email_utils import send_video_complete_email
+from app.gcs_utils import generate_video_filename, upload_file_to_gcs, generate_thumbnail_filename, get_gcs_bucket_name, parse_gcs_filename
 import requests
 import json
 import time
@@ -163,7 +164,6 @@ def _generate_video_task(video_id):
         print(f"📋 Step 4/6: Uploading to Google Cloud Storage...")
         
         # Generate organized filename
-        from app.gcs_utils import generate_video_filename
         gcs_path, filename, gcs_url = generate_video_filename(
             video_id=video_id,
             quality=video.quality,
@@ -457,7 +457,6 @@ def generate_video_thumbnail_from_gcs(gcs_url, video_id, quality='free', prompt=
         GCS URL of the generated thumbnail or None if failed
     """
     try:
-        from app.gcs_utils import generate_thumbnail_filename, get_gcs_bucket_name
         from app.video_processor import VideoProcessor
         import tempfile
         import os
@@ -533,7 +532,6 @@ def download_video_from_gcs(gcs_url):
         Path to temporary video file or None if failed
     """
     try:
-        from app.gcs_utils import parse_gcs_filename
         import tempfile
         import os
         
@@ -590,29 +588,7 @@ def create_text_thumbnail_fallback(video_id):
         print(f"❌ Error creating fallback thumbnail: {e}")
         return None
 
-def upload_file_to_gcs(file_path, blob_name):
-    """Upload file to Google Cloud Storage"""
-    try:
-        # Get GCS bucket name from environment
-        bucket_name = os.environ.get('GCS_BUCKET_NAME')
-        if not bucket_name:
-            print("❌ GCS_BUCKET_NAME not found in environment")
-            return None
-        
-        # Initialize GCS client
-            storage_client = storage.Client()
-        bucket = storage_client.bucket(bucket_name)
-        blob = bucket.blob(blob_name)
-        
-        # Upload file
-        blob.upload_from_filename(file_path)
-        
-        # Return public URL
-        return f"gs://{bucket_name}/{blob_name}"
-        
-    except Exception as e:
-        print(f"❌ Error uploading to GCS: {e}")
-        return None
+
 
 def process_priority_queue():
     """Process videos in priority order"""
