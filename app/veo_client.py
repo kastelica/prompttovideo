@@ -244,9 +244,17 @@ class VeoClient:
                 }
             }
             
-            # Add audio generation for premium (Veo 3)
-            if has_audio:
+            # Add audio generation for premium (Veo 3) - only Veo 3 supports audio
+            if has_audio and quality == 'premium':
                 request_data["parameters"]["generateAudio"] = True
+                current_app.logger.info("🎵 VEO: Audio generation enabled for premium video")
+            else:
+                current_app.logger.info("🔇 VEO: Audio generation disabled (free tier or Veo 2)")
+            
+            # Add resolution for Veo 3 models
+            if quality == 'premium':
+                request_data["parameters"]["resolution"] = "1080p"
+                current_app.logger.info("📺 VEO: 1080p resolution enabled for premium video")
             
             current_app.logger.info(f"📤 VEO: Request data prepared: {request_data}")
             current_app.logger.info(f"📤 VEO: Model: {self.model_id}")

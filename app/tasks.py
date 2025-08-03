@@ -254,8 +254,19 @@ def call_veo_api(prompt, quality):
         project_id = os.environ.get('GOOGLE_CLOUD_PROJECT', 'dirly-466300')
         print(f"🔧 Using Google Cloud project: {project_id}")
         
-        # Choose model based on quality
-        model_id = "veo-3.0-generate-001" if quality == 'premium' else "veo-3.0-fast-generate-001"
+        # Choose model based on quality - consistent with Veo client
+        if quality == 'free':
+            model_id = "veo-2.0-generate-001"  # Veo 2 for free tier
+            max_duration = 8
+            has_audio = False
+        else:  # premium
+            model_id = "veo-3.0-generate-001"  # Veo 3 for premium tier
+            max_duration = 60
+            has_audio = True
+        
+        print(f"🎯 Using model: {model_id}")
+        print(f"🎯 Max duration: {max_duration} seconds")
+        print(f"🎯 Audio generation: {has_audio}")
         
         # API endpoint
         url = f"https://us-central1-aiplatform.googleapis.com/v1/projects/{project_id}/locations/us-central1/publishers/google/models/{model_id}:predictLongRunning"
@@ -266,18 +277,25 @@ def call_veo_api(prompt, quality):
                 "prompt": prompt
             }],
             "parameters": {
-                "durationSeconds": 8,
+                "durationSeconds": max_duration,
                 "sampleCount": 1,
                 "aspectRatio": "16:9",
                 "enhancePrompt": True,
-                "generateAudio": True,
                 "personGeneration": "allow_adult"
             }
         }
         
+        # Add audio generation for premium (Veo 3) - only Veo 3 supports audio
+        if has_audio and quality == 'premium':
+            payload["parameters"]["generateAudio"] = True
+            print("🎵 Audio generation enabled for premium video")
+        else:
+            print("🔇 Audio generation disabled (free tier or Veo 2)")
+        
         # Add quality-specific settings
         if quality == 'premium':
             payload["parameters"]["resolution"] = "1080p"
+            print("📺 1080p resolution enabled for premium video")
         
         # Make API request
         headers = {
