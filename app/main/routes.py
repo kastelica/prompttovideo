@@ -154,38 +154,34 @@ def generate_video():
         db.session.commit()
         current_app.logger.info(f"✅ BACKEND: Video priority updated and committed")
         
-        # Queue the video generation task
+        # Queue the video generation task using background threads
         try:
-            from app.tasks import get_celery_task
-            current_app.logger.info("🚀 BACKEND: Queuing video generation task with Celery")
+            import threading
+            from app.tasks import generate_video_task
             
-            # Get the Celery task
-            celery_task = get_celery_task()
-            if celery_task is None:
-                current_app.logger.error("❌ BACKEND: Celery task not available - falling back to direct execution")
-                from app.tasks import generate_video_task
-                generate_video_task(video.id)
-                return jsonify({
-                    'success': True,
-                    'video_id': video.id,
-                    'message': 'Video generation started (direct execution)'
-                }), 200
+            current_app.logger.info("🚀 BACKEND: Starting video generation with background thread")
             
-            current_app.logger.info(f"🚀 BACKEND: Calling celery task with video ID: {video.id}")
+            # Start video generation in background thread
+            def run_video_generation():
+                try:
+                    generate_video_task(video.id)
+                except Exception as e:
+                    current_app.logger.error(f"❌ BACKEND: Background thread error: {e}")
             
-            # Queue the task asynchronously
-            task = celery_task.delay(video.id)
-            current_app.logger.info(f"✅ BACKEND: Video generation task queued successfully with task ID: {task.id}")
+            thread = threading.Thread(target=run_video_generation)
+            thread.daemon = True
+            thread.start()
+            
+            current_app.logger.info(f"✅ BACKEND: Video generation started in background thread")
             
             return jsonify({
                 'success': True,
                 'video_id': video.id,
-                'task_id': task.id,
-                'message': 'Video generation queued successfully'
+                'message': 'Video generation started successfully'
             }), 200
             
         except Exception as e:
-            current_app.logger.error(f"❌ BACKEND: Failed to run video generation task: {e}")
+            current_app.logger.error(f"❌ BACKEND: Failed to start video generation: {e}")
             # If task execution fails, mark as failed and refund credits
             video.status = 'failed'
             user.add_credits(credit_cost, 'refund')

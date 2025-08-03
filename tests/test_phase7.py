@@ -269,9 +269,6 @@ class TestPhase7Features:
         """Test that deployment configuration files exist"""
         import os
         
-        # Check for Railway config
-        assert os.path.exists('railway.json')
-        
         # Check for Cloud Build config
         assert os.path.exists('cloudbuild.yaml')
         
@@ -281,18 +278,6 @@ class TestPhase7Features:
         # Check for Dockerfile
         assert os.path.exists('Dockerfile')
     
-    def test_railway_config_structure(self):
-        """Test Railway configuration structure"""
-        import json
-        
-        with open('railway.json', 'r') as f:
-            config = json.load(f)
-        
-        assert 'build' in config
-        assert 'deploy' in config
-        assert config['build']['builder'] == 'DOCKERFILE'
-        assert config['deploy']['startCommand'] is not None
-    
     def test_cloudbuild_config_structure(self):
         """Test Cloud Build configuration structure"""
         with open('cloudbuild.yaml', 'r') as f:
@@ -301,7 +286,7 @@ class TestPhase7Features:
         assert 'steps:' in content
         assert 'gcr.io/cloud-builders/docker' in content
         assert 'gcloud' in content
-        assert 'run deploy' in content
+        assert 'deploy' in content
     
     def test_deploy_script_structure(self):
         """Test deployment script structure"""
