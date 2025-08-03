@@ -120,6 +120,8 @@ def api_list_videos():
     return jsonify({
         'videos': [{
             'id': video.id,
+            'title': video.title,
+            'display_title': video.get_display_title(60),
             'prompt': video.prompt,
             'quality': video.quality,
             'status': video.status,
@@ -635,6 +637,7 @@ def api_search():
             results['videos'].append({
                 'id': video.id,
                 'title': video.title or 'Untitled',
+                'display_title': video.get_display_title(60),
                 'prompt': video.prompt[:200] + '...' if video.prompt and len(video.prompt) > 200 else video.prompt,
                 'description': video.description[:150] + '...' if video.description and len(video.description) > 150 else video.description,
                 'thumbnail_url': video.thumbnail_url,

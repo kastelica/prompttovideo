@@ -492,7 +492,7 @@ function showSubmissionForm() {
     // Populate video select
     const videoSelect = document.getElementById('videoSelect');
     videoSelect.innerHTML = '<option value="">Choose a video...</option>' +
-        userVideos.map(video => `<option value="${video.id}">${video.title || video.prompt.slice(0, 50)}</option>`).join('');
+        userVideos.map(video => `<option value="${video.id}">${video.display_title || video.title || video.prompt.slice(0, 50)}</option>`).join('');
     
     document.getElementById('submissionModal').classList.remove('hidden');
 }

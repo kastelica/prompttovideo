@@ -347,6 +347,12 @@ class Video(db.Model):
         """Get SEO-friendly title"""
         return self.title or f"AI Generated Video: {self.prompt[:50]}..."
     
+    def get_display_title(self, max_length=60):
+        """Get title for display on cards - custom title if available, otherwise prompt"""
+        if self.title:
+            return self.title[:max_length] + ('...' if len(self.title) > max_length else '')
+        return self.prompt[:max_length] + ('...' if len(self.prompt) > max_length else '')
+    
     def get_seo_description(self):
         """Get SEO-friendly description"""
         return self.description or f"Watch this AI-generated video created with the prompt: {self.prompt[:100]}..."

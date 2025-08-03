@@ -130,7 +130,7 @@
                 <!-- Video Thumbnail -->
                 <div class="relative aspect-video bg-gray-200">
                     {% if video.status == 'completed' and video.thumbnail_url %}
-                        <img src="{{ video.thumbnail_url }}" alt="{{ video.title or video.prompt[:50] }}" class="w-full h-full object-cover">
+                                                        <img src="{{ video.thumbnail_url }}" alt="{{ video.get_display_title(50) }}" class="w-full h-full object-cover">
                     {% else %}
                         <div class="flex items-center justify-center h-full">
                             {% if video.status == 'processing' %}
@@ -196,7 +196,7 @@
                 <!-- Video Info -->
                 <div class="p-6">
                     <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2 text-lg">
-                        {{ video.title or (video.prompt[:60] + '...' if video.prompt|length > 60 else video.prompt) or 'Untitled Video' }}
+                        {{ video.get_display_title(80) }}
                     </h3>
                     
                     {% if video.description %}

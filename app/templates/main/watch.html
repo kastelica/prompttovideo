@@ -148,7 +148,7 @@
                                 {% endif %}
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ video.prompt[:60] }}{% if video.prompt|length > 60 %}...{% endif %}</p>
+                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ video.get_display_title(60) }}</p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">{{ video.quality }} • {{ video.duration or 8 }}s</p>
                             </div>
                         </div>
@@ -583,7 +583,7 @@
                     </div>
                     <div class="p-3">
                         <h3 class="font-medium text-gray-900 text-sm line-clamp-2 group-hover:text-primary transition-colors">
-                            {{ related_video.prompt[:60] }}{% if related_video.prompt|length > 60 %}...{% endif %}
+                            {{ related_video.get_display_title(60) }}
                         </h3>
                         <div class="flex items-center justify-between mt-2">
                             <p class="text-xs text-gray-500">{{ related_video.views }} views</p>
