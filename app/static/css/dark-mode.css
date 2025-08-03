@@ -442,4 +442,622 @@
         transition: none !important;
         animation: none !important;
     }
+}
+
+/* ===== COMPREHENSIVE DARK MODE FIXES ===== */
+
+/* Page backgrounds */
+.dark .bg-gray-50 {
+    background-color: #0f172a !important;
+}
+
+.dark .bg-gray-100 {
+    background-color: #1e293b !important;
+}
+
+.dark .bg-gray-200 {
+    background-color: #334155 !important;
+}
+
+.dark .bg-gray-300 {
+    background-color: #475569 !important;
+}
+
+.dark .bg-gray-400 {
+    background-color: #64748b !important;
+}
+
+.dark .bg-gray-500 {
+    background-color: #94a3b8 !important;
+}
+
+.dark .bg-gray-600 {
+    background-color: #cbd5e1 !important;
+}
+
+.dark .bg-gray-700 {
+    background-color: #e2e8f0 !important;
+}
+
+.dark .bg-gray-800 {
+    background-color: #f1f5f9 !important;
+}
+
+.dark .bg-gray-900 {
+    background-color: #f8fafc !important;
+}
+
+/* Text colors */
+.dark .text-gray-50 {
+    color: #f8fafc !important;
+}
+
+.dark .text-gray-100 {
+    color: #f1f5f9 !important;
+}
+
+.dark .text-gray-200 {
+    color: #e2e8f0 !important;
+}
+
+.dark .text-gray-300 {
+    color: #cbd5e1 !important;
+}
+
+.dark .text-gray-400 {
+    color: #94a3b8 !important;
+}
+
+.dark .text-gray-500 {
+    color: #64748b !important;
+}
+
+.dark .text-gray-600 {
+    color: #475569 !important;
+}
+
+.dark .text-gray-700 {
+    color: #334155 !important;
+}
+
+.dark .text-gray-800 {
+    color: #1e293b !important;
+}
+
+.dark .text-gray-900 {
+    color: #0f172a !important;
+}
+
+/* Gradient backgrounds */
+.dark .bg-gradient-to-br {
+    background-image: linear-gradient(to bottom right, #0f172a, #1e293b) !important;
+}
+
+.dark .bg-gradient-to-r {
+    background-image: linear-gradient(to right, #0f172a, #1e293b) !important;
+}
+
+.dark .from-gray-50 {
+    --tw-gradient-from: #0f172a !important;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(15, 23, 42, 0)) !important;
+}
+
+.dark .from-gray-100 {
+    --tw-gradient-from: #1e293b !important;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(30, 41, 59, 0)) !important;
+}
+
+.dark .to-gray-100 {
+    --tw-gradient-to: #1e293b !important;
+}
+
+.dark .to-gray-800 {
+    --tw-gradient-to: #1e293b !important;
+}
+
+/* Card backgrounds */
+.dark .bg-white {
+    background-color: #1e293b !important;
+}
+
+.dark .bg-white\/90 {
+    background-color: rgba(30, 41, 59, 0.9) !important;
+}
+
+.dark .bg-white\/95 {
+    background-color: rgba(30, 41, 59, 0.95) !important;
+}
+
+/* Border colors */
+.dark .border-gray-100 {
+    border-color: #334155 !important;
+}
+
+.dark .border-gray-200 {
+    border-color: #475569 !important;
+}
+
+.dark .border-gray-300 {
+    border-color: #64748b !important;
+}
+
+.dark .border-gray-400 {
+    border-color: #94a3b8 !important;
+}
+
+/* Input backgrounds */
+.dark .bg-gray-50 {
+    background-color: #1e293b !important;
+}
+
+.dark .focus\:bg-white:focus {
+    background-color: #334155 !important;
+}
+
+/* Button backgrounds */
+.dark .bg-gray-100 {
+    background-color: #334155 !important;
+}
+
+.dark .hover\:bg-gray-200:hover {
+    background-color: #475569 !important;
+}
+
+.dark .hover\:bg-gray-50:hover {
+    background-color: #1e293b !important;
+}
+
+/* Search filter buttons */
+.dark .search-filter-btn {
+    background-color: #334155 !important;
+    color: #e2e8f0 !important;
+    border-color: #475569 !important;
+}
+
+.dark .search-filter-btn:hover {
+    background-color: #475569 !important;
+}
+
+.dark .search-filter-btn.active {
+    background-color: #3b82f6 !important;
+    color: #ffffff !important;
+    border-color: #3b82f6 !important;
+}
+
+/* Tab buttons */
+.dark .tab-btn {
+    background-color: transparent !important;
+    color: #94a3b8 !important;
+    border-color: transparent !important;
+}
+
+.dark .tab-btn:hover {
+    background-color: #334155 !important;
+    color: #e2e8f0 !important;
+}
+
+.dark .tab-btn.active {
+    background-color: #3b82f6 !important;
+    color: #ffffff !important;
+    border-color: #3b82f6 !important;
+}
+
+/* Profile stats cards */
+.dark .bg-gradient-to-br.from-blue-50.to-blue-100 {
+    background-image: linear-gradient(to bottom right, #1e3a8a, #1d4ed8) !important;
+}
+
+.dark .bg-gradient-to-br.from-green-50.to-green-100 {
+    background-image: linear-gradient(to bottom right, #065f46, #047857) !important;
+}
+
+.dark .bg-gradient-to-br.from-purple-50.to-purple-100 {
+    background-image: linear-gradient(to bottom right, #581c87, #7c3aed) !important;
+}
+
+.dark .bg-gradient-to-br.from-orange-50.to-orange-100 {
+    background-image: linear-gradient(to bottom right, #78350f, #92400e) !important;
+}
+
+.dark .border-blue-200 {
+    border-color: #1d4ed8 !important;
+}
+
+.dark .border-green-200 {
+    border-color: #047857 !important;
+}
+
+.dark .border-purple-200 {
+    border-color: #7c3aed !important;
+}
+
+.dark .border-orange-200 {
+    border-color: #92400e !important;
+}
+
+.dark .text-blue-700 {
+    color: #dbeafe !important;
+}
+
+.dark .text-green-700 {
+    color: #d1fae5 !important;
+}
+
+.dark .text-purple-700 {
+    color: #e9d5ff !important;
+}
+
+.dark .text-orange-700 {
+    color: #fed7aa !important;
+}
+
+.dark .text-blue-600 {
+    color: #bfdbfe !important;
+}
+
+.dark .text-green-600 {
+    color: #a7f3d0 !important;
+}
+
+.dark .text-purple-600 {
+    color: #c4b5fd !important;
+}
+
+.dark .text-orange-600 {
+    color: #fdba74 !important;
+}
+
+/* Credit pack cards */
+.dark .bg-gradient-to-r.from-green-50.to-blue-50 {
+    background-image: linear-gradient(to right, #065f46, #1e3a8a) !important;
+}
+
+.dark .border-green-200 {
+    border-color: #047857 !important;
+}
+
+.dark .bg-green-100 {
+    background-color: #065f46 !important;
+}
+
+.dark .text-green-600 {
+    color: #a7f3d0 !important;
+}
+
+.dark .bg-green-600 {
+    background-color: #059669 !important;
+}
+
+.dark .hover\:bg-green-700:hover {
+    background-color: #047857 !important;
+}
+
+/* Video player backgrounds */
+.dark .bg-gray-200 {
+    background-color: #334155 !important;
+}
+
+/* Chat system */
+.dark .bg-gradient-to-b.from-gray-50.to-white {
+    background-image: linear-gradient(to bottom, #0f172a, #1e293b) !important;
+}
+
+.dark .bg-gradient-to-r.from-blue-600.to-blue-700 {
+    background-image: linear-gradient(to right, #2563eb, #1d4ed8) !important;
+}
+
+.dark .text-blue-100 {
+    color: #dbeafe !important;
+}
+
+.dark .bg-blue-500 {
+    background-color: #3b82f6 !important;
+}
+
+.dark .hover\:bg-blue-600:hover {
+    background-color: #2563eb !important;
+}
+
+.dark .hover\:from-blue-600:hover {
+    --tw-gradient-from: #2563eb !important;
+}
+
+.dark .hover\:to-blue-700:hover {
+    --tw-gradient-to: #1d4ed8 !important;
+}
+
+/* Video cards in search and other pages */
+.dark .hover\:bg-gray-50:hover {
+    background-color: #1e293b !important;
+}
+
+.dark .hover\:shadow-lg:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Loading states */
+.dark .bg-gray-300 {
+    background-color: #475569 !important;
+}
+
+.dark .bg-gray-400 {
+    background-color: #64748b !important;
+}
+
+/* Modal and overlay backgrounds */
+.dark .bg-black.bg-opacity-50 {
+    background-color: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Form elements in dark mode */
+.dark input[type="text"],
+.dark input[type="email"],
+.dark input[type="password"],
+.dark input[type="number"],
+.dark input[type="search"],
+.dark textarea,
+.dark select {
+    background-color: #1e293b !important;
+    border-color: #475569 !important;
+    color: #e2e8f0 !important;
+}
+
+.dark input[type="text"]:focus,
+.dark input[type="email"]:focus,
+.dark input[type="password"]:focus,
+.dark input[type="number"]:focus,
+.dark input[type="search"]:focus,
+.dark textarea:focus,
+.dark select:focus {
+    background-color: #334155 !important;
+    border-color: #3b82f6 !important;
+    color: #f8fafc !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+    color: #94a3b8 !important;
+}
+
+/* Specific page fixes */
+.dark .min-h-screen.bg-gray-50 {
+    background-color: #0f172a !important;
+}
+
+.dark .min-h-screen.bg-gray-50.py-8 {
+    background-color: #0f172a !important;
+}
+
+.dark .min-h-screen.bg-gray-50.py-12 {
+    background-color: #0f172a !important;
+}
+
+/* Dashboard specific */
+.dark .text-gray-900 {
+    color: #f8fafc !important;
+}
+
+.dark .text-gray-600 {
+    color: #94a3b8 !important;
+}
+
+.dark .text-gray-500 {
+    color: #64748b !important;
+}
+
+/* Profile page specific */
+.dark .bg-gradient-to-br.from-gray-50.to-gray-100 {
+    background-image: linear-gradient(to bottom right, #0f172a, #1e293b) !important;
+}
+
+/* Search page specific */
+.dark .min-h-screen.bg-gray-50 {
+    background-color: #0f172a !important;
+}
+
+/* Credit packs page specific */
+.dark .min-h-screen.bg-gray-50 {
+    background-color: #0f172a !important;
+}
+
+/* Video watch page specific */
+.dark .min-h-screen.bg-gray-50.dark\:bg-dark-900 {
+    background-color: #0f172a !important;
+}
+
+/* Ensure all white backgrounds are properly handled */
+.dark [class*="bg-white"] {
+    background-color: #1e293b !important;
+}
+
+/* Ensure all gray backgrounds are properly handled */
+.dark [class*="bg-gray-"] {
+    background-color: var(--dark-bg-color, #1e293b) !important;
+}
+
+/* Ensure all gray text is properly handled */
+.dark [class*="text-gray-"] {
+    color: var(--dark-text-color, #e2e8f0) !important;
+}
+
+/* ===== SPECIFIC PAGE FIXES ===== */
+
+/* Index page specific fixes */
+.dark .bg-gradient-to-r.from-blue-50.via-purple-50.to-pink-50 {
+    background-image: linear-gradient(to right, rgba(30, 58, 138, 0.1), rgba(147, 51, 234, 0.1), rgba(236, 72, 153, 0.1)) !important;
+}
+
+.dark .bg-blue-50 {
+    background-color: rgba(30, 58, 138, 0.1) !important;
+}
+
+.dark .bg-purple-50 {
+    background-color: rgba(147, 51, 234, 0.1) !important;
+}
+
+.dark .bg-pink-50 {
+    background-color: rgba(236, 72, 153, 0.1) !important;
+}
+
+/* Watch page specific fixes */
+.dark .bg-gradient-to-b.from-gray-50.to-white {
+    background-image: linear-gradient(to bottom, #0f172a, #1e293b) !important;
+}
+
+.dark .bg-gradient-to-r.from-blue-600.to-blue-700 {
+    background-image: linear-gradient(to right, #2563eb, #1d4ed8) !important;
+}
+
+.dark .bg-gradient-to-r.from-gray-50.to-gray-100 {
+    background-image: linear-gradient(to right, #0f172a, #1e293b) !important;
+}
+
+/* Profile page specific fixes */
+.dark .bg-gradient-to-br.from-gray-50.to-gray-100 {
+    background-image: linear-gradient(to bottom right, #0f172a, #1e293b) !important;
+}
+
+.dark .bg-gradient-to-r.from-gray-50.to-gray-100 {
+    background-image: linear-gradient(to right, #0f172a, #1e293b) !important;
+}
+
+/* Search page specific fixes */
+.dark .bg-gradient-to-r.from-gray-50.to-gray-100 {
+    background-image: linear-gradient(to right, #0f172a, #1e293b) !important;
+}
+
+/* Credit packs page specific fixes */
+.dark .bg-gradient-to-r.from-green-50.to-blue-50 {
+    background-image: linear-gradient(to right, rgba(6, 95, 70, 0.1), rgba(30, 58, 138, 0.1)) !important;
+}
+
+.dark .bg-green-50 {
+    background-color: rgba(6, 95, 70, 0.1) !important;
+}
+
+.dark .bg-blue-50 {
+    background-color: rgba(30, 58, 138, 0.1) !important;
+}
+
+/* Additional text color fixes */
+.dark .text-gray-700 {
+    color: #cbd5e1 !important;
+}
+
+.dark .text-gray-800 {
+    color: #e2e8f0 !important;
+}
+
+/* Additional background fixes */
+.dark .bg-gray-50\/90 {
+    background-color: rgba(15, 23, 42, 0.9) !important;
+}
+
+.dark .bg-gray-50\/95 {
+    background-color: rgba(15, 23, 42, 0.95) !important;
+}
+
+/* Button and interactive element fixes */
+.dark .bg-gray-100.dark\:bg-dark-700 {
+    background-color: #334155 !important;
+}
+
+.dark .hover\:bg-gray-50.dark\:hover\:bg-dark-700:hover {
+    background-color: #334155 !important;
+}
+
+.dark .border-gray-300.dark\:border-dark-600 {
+    border-color: #64748b !important;
+}
+
+.dark .text-gray-700.dark\:text-gray-300 {
+    color: #cbd5e1 !important;
+}
+
+/* Form element specific fixes */
+.dark .bg-white.dark\:bg-dark-700 {
+    background-color: #334155 !important;
+}
+
+.dark .border-gray-300.dark\:border-dark-600 {
+    border-color: #64748b !important;
+}
+
+.dark .text-gray-900.dark\:text-gray-200 {
+    color: #e2e8f0 !important;
+}
+
+/* Focus state fixes */
+.dark .focus\:bg-white.dark\:focus\:bg-dark-600:focus {
+    background-color: #475569 !important;
+}
+
+/* Hover state fixes */
+.dark .hover\:bg-gray-50.dark\:hover\:bg-dark-700:hover {
+    background-color: #334155 !important;
+}
+
+.dark .hover\:bg-gray-200.dark\:hover\:bg-dark-600:hover {
+    background-color: #475569 !important;
+}
+
+/* Border fixes */
+.dark .border-gray-100.dark\:border-dark-700 {
+    border-color: #475569 !important;
+}
+
+.dark .border-gray-200.dark\:border-dark-700 {
+    border-color: #475569 !important;
+}
+
+/* Text color fixes for specific elements */
+.dark .text-gray-600.dark\:text-gray-400 {
+    color: #94a3b8 !important;
+}
+
+.dark .text-gray-500.dark\:text-gray-400 {
+    color: #94a3b8 !important;
+}
+
+/* Background fixes for specific elements */
+.dark .bg-white.dark\:bg-dark-800 {
+    background-color: #1e293b !important;
+}
+
+.dark .bg-gray-50.dark\:bg-dark-700 {
+    background-color: #334155 !important;
+}
+
+/* Additional gradient fixes */
+.dark .from-gray-50.dark\:from-dark-900 {
+    --tw-gradient-from: #0f172a !important;
+}
+
+.dark .to-gray-100.dark\:to-dark-800 {
+    --tw-gradient-to: #1e293b !important;
+}
+
+/* Ensure all text is readable in dark mode */
+.dark * {
+    color-scheme: dark;
+}
+
+/* Fix for any remaining white text */
+.dark .text-white {
+    color: #f8fafc !important;
+}
+
+/* Fix for any remaining black text */
+.dark .text-black {
+    color: #f8fafc !important;
+}
+
+/* Fix for any remaining white backgrounds */
+.dark .bg-white {
+    background-color: #1e293b !important;
+}
+
+/* Fix for any remaining black backgrounds */
+.dark .bg-black {
+    background-color: #0f172a !important;
 } 
