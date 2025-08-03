@@ -3,8 +3,6 @@ name: Deploy to Google Cloud Run
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 env:
   PROJECT_ID: dirly-466300
@@ -46,7 +44,11 @@ jobs:
           --timeout 300 \
           --concurrency 80 \
           --max-instances 5 \
-          --set-env-vars DATABASE_URL=postgresql://prompttovideo:PromptToVideo2024!@/prompttovideo?host=/cloudsql/${{ env.PROJECT_ID }}:us-central1:prompttovideo-db,GCS_BUCKET_NAME=prompt-veo-videos,VEO_MOCK_MODE=false,FLASK_ENV=production,GOOGLE_APPLICATION_CREDENTIALS=/app/veo.json \
+          --set-env-vars DATABASE_URL="postgresql://prompttovideo:PromptToVideo2024!@/prompttovideo?host=/cloudsql/${{ env.PROJECT_ID }}:us-central1:prompttovideo-db" \
+          --set-env-vars GCS_BUCKET_NAME="prompt-veo-videos" \
+          --set-env-vars VEO_MOCK_MODE="false" \
+          --set-env-vars FLASK_ENV="production" \
+          --set-env-vars GOOGLE_APPLICATION_CREDENTIALS="/app/veo.json" \
           --add-cloudsql-instances ${{ env.PROJECT_ID }}:us-central1:prompttovideo-db \
           --service-account prompttovideo-runner@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
     
