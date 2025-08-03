@@ -27,11 +27,6 @@ class VeoClient:
         self.model_id = 'veo-2.0-generate-001'
         self.credentials = None
         
-        # Check if we should use mock mode first
-        if self._should_use_mock():
-            current_app.logger.info("VeoClient initialized in mock mode - skipping Google Cloud authentication")
-            return
-        
         # If Google Cloud libraries are not available, skip credential initialization
         if not GOOGLE_CLOUD_AVAILABLE:
             current_app.logger.warning("Google Cloud libraries not available - VeoClient will use mock mode")
@@ -45,53 +40,25 @@ class VeoClient:
             current_app.logger.info(f"Using hardcoded credentials path: {creds_path}")
         
         if os.path.exists(creds_path):
-            try:
+            self._init_google_auth(creds_path)
+        else:
+            current_app.logger.warning(f"Credentials file not found: {creds_path}")
+            current_app.logger.warning("VeoClient will use default credentials")
+            self._init_google_auth()
+    
+    def _init_google_auth(self, creds_path=None):
+        """Initialize Google Cloud authentication"""
+        try:
+            if creds_path and os.path.exists(creds_path):
+                # Use service account credentials
                 self.credentials = service_account.Credentials.from_service_account_file(
                     creds_path,
                     scopes=['https://www.googleapis.com/auth/cloud-platform']
                 )
-                current_app.logger.info(f"Loaded Google Cloud credentials from: {creds_path}")
-            except Exception as e:
-                current_app.logger.error(f"Failed to load credentials from {creds_path}: {e}")
-        else:
-            current_app.logger.warning(f"Credentials file not found: {creds_path}")
-    
-    def _init_google_auth(self):
-        """Initialize Google Cloud authentication"""
-        try:
-            # Try to use service account credentials from environment variable
-            credentials_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
-            logger.info(f"DEBUG: GOOGLE_APPLICATION_CREDENTIALS path: {credentials_path}")
-            
-            if credentials_path:
-                logger.info(f"DEBUG: Credentials path exists: {os.path.exists(credentials_path)}")
-                if os.path.exists(credentials_path):
-                    logger.info("DEBUG: Loading service account credentials from file")
-                    from google.oauth2 import service_account
-                    self.credentials = service_account.Credentials.from_service_account_file(
-                        credentials_path,
-                        scopes=['https://www.googleapis.com/auth/cloud-platform']
-                    )
-                    logger.info("DEBUG: Service account credentials loaded successfully")
-                    logger.info(f"DEBUG: Credentials valid: {self.credentials.valid}")
-                    logger.info("Google Cloud authentication initialized with service account")
-                else:
-                    logger.warning(f"DEBUG: Credentials file does not exist: {credentials_path}")
-                    self.credentials = None
+                logger.info(f"Google Cloud authentication initialized with service account: {creds_path}")
             else:
-                logger.warning("DEBUG: GOOGLE_APPLICATION_CREDENTIALS environment variable not set")
-                # Fallback to Application Default Credentials
-                logger.info("DEBUG: Trying Application Default Credentials")
-                import google.auth
-                from google.auth.transport.requests import Request
-                
-                credentials, project = google.auth.default()
-                if not credentials.valid:
-                    credentials.refresh(Request())
-                
-                self.credentials = credentials
-                logger.info("DEBUG: Application Default Credentials loaded")
-                logger.info(f"DEBUG: Credentials valid: {self.credentials.valid}")
+                # Use default credentials (for Cloud Run)
+                self.credentials = None
                 logger.info("Google Cloud authentication initialized with default credentials")
             
         except Exception as e:
@@ -103,11 +70,6 @@ class VeoClient:
     def _get_auth_token(self):
         """Get authentication token for Google Cloud API"""
         try:
-            # Check if we should use mock mode first
-            if self._should_use_mock():
-                current_app.logger.info("Using mock authentication token for development")
-                return "mock_token_for_development"
-            
             # If Google Cloud libraries are not available, return mock token
             if not GOOGLE_CLOUD_AVAILABLE:
                 current_app.logger.warning("Google Cloud libraries not available, using mock token")
@@ -146,68 +108,25 @@ class VeoClient:
             current_app.logger.error(f"DEBUG: GOOGLE_APPLICATION_CREDENTIALS environment variable not set")
             return "mock_token_for_development"
     
-    def _should_use_mock(self):
-        """Check if we should use mock mode for development"""
-        # Check for explicit mock mode
-        if current_app.config.get('VEO_MOCK_MODE', False):
-            current_app.logger.info("🎭 VEO: Mock mode enabled via VEO_MOCK_MODE=True")
-            return True
-            
-        # Check for testing mode
-        if current_app.config.get('TESTING', False):
-            current_app.logger.info("🎭 VEO: Mock mode enabled via TESTING=True")
-            return True
-            
-        # Check for development mode
-        if current_app.config.get('FLASK_ENV') == 'development':
-            current_app.logger.info("🎭 VEO: Mock mode enabled via FLASK_ENV=development")
-            return True
-            
-        # Check for cost prevention mode
-        if current_app.config.get('VEO_PREVENT_CHARGES', False):
-            current_app.logger.warning("💰 VEO: Real API calls disabled via VEO_PREVENT_CHARGES=True")
-            current_app.logger.warning("💰 VEO: Using mock mode to prevent charges")
-            return True
-            
-        return False
-    
     def generate_video(self, prompt, quality='free', duration=30):
         """Generate video using Veo API"""
-        current_app.logger.info(f"🌐 VEO: ===== VEO API: GENERATE VIDEO STARTED =====")
-        current_app.logger.info(f"🌐 VEO: Prompt: '{prompt}'")
-        current_app.logger.info(f"🌐 VEO: Quality: {quality}")
-        current_app.logger.info(f"🌐 VEO: Duration: {duration}")
-        current_app.logger.info(f"🌐 VEO: Prompt type: {type(prompt)}")
-        current_app.logger.info(f"🌐 VEO: Quality type: {type(quality)}")
-        current_app.logger.info(f"🌐 VEO: Duration type: {type(duration)}")
         
         # Set model based on quality
-        if quality == 'free':
-            self.model_id = 'veo-2.0-generate-001'  # Veo 2 for free tier
-            max_duration = 8  # Veo 2 supports up to 8 seconds
-            has_audio = False
-        else:  # premium
-            self.model_id = 'veo-3.0-generate-001'  # Veo 3 for premium tier
-            max_duration = 60  # Veo 3 supports up to 60 seconds
+        if quality == 'premium':
+            self.model_id = 'veo-3.0-generate-001'
+            max_duration = 60
             has_audio = True
+        else:
+            self.model_id = 'veo-2.0-generate-001'
+            max_duration = 8
+            has_audio = False
         
-        current_app.logger.info(f"🎯 VEO: Using model: {self.model_id}")
-        current_app.logger.info(f"🎯 VEO: Max duration: {max_duration} seconds")
         current_app.logger.info(f"🎯 VEO: Has audio: {has_audio}")
         
         try:
-            # Check if we should use mock mode
-            if self._should_use_mock():
-                current_app.logger.info("🎭 VEO: Using mock Veo API for development")
-                result = self._mock_generate_video(prompt, quality, duration)
-                current_app.logger.info(f"🎭 VEO: Mock result: {result}")
-                current_app.logger.info(f"🌐 VEO: ===== VEO API: GENERATE VIDEO COMPLETED (MOCK) =====")
-                return result
-            
             # ⚠️ COST WARNING: Real Veo API calls will charge you money
             current_app.logger.warning("💰 VEO: WARNING - Real Veo API calls will charge your Google Cloud account")
             current_app.logger.warning("💰 VEO: Each video generation costs money, even if it fails")
-            current_app.logger.warning("💰 VEO: Consider using VEO_MOCK_MODE=True for testing")
             
             current_app.logger.info("🌐 VEO: Using real Veo API")
             
@@ -240,7 +159,7 @@ class VeoClient:
                     "enhancePrompt": True,
                     "sampleCount": 1,
                     "personGeneration": "allow_adult",
-                    "storageUri": "gs://prompt-veo-videos/videos/"
+                    "storageUri": f"gs://prompt-veo-videos/videos/"
                 }
             }
             
@@ -331,21 +250,6 @@ class VeoClient:
             current_app.logger.info(f"🌐 VEO: ===== VEO API: GENERATE VIDEO EXCEPTION =====")
             return {'success': False, 'error': str(e)}
     
-    def _mock_generate_video(self, prompt, quality, duration):
-        """Mock video generation for development/testing"""
-        import uuid
-        import time
-        
-        # Generate a mock operation name
-        operation_name = f"projects/{self.project_id}/locations/{self.location}/publishers/google/models/{self.model_id}/operations/{uuid.uuid4()}"
-        
-        current_app.logger.info(f"Mock video generation started: {operation_name}")
-        
-        return {
-            'success': True,
-            'operation_name': operation_name
-        }
-    
     def check_video_status(self, operation_name):
         """Check the status of a video generation operation (Veo 3 API)"""
         current_app.logger.info(f"🔍 VEO: ===== VEO API: CHECK STATUS STARTED =====")
@@ -361,14 +265,6 @@ class VeoClient:
         current_app.logger.info(f"🔍 VEO: Using model: {self.model_id}")
         
         try:
-            # Check if we should use mock mode
-            if self._should_use_mock():
-                current_app.logger.info("🎭 VEO: Using mock status check for development")
-                result = self._mock_check_video_status(operation_name)
-                current_app.logger.info(f"🎭 VEO: Mock status result: {result}")
-                current_app.logger.info(f"🔍 VEO: ===== VEO API: CHECK STATUS COMPLETED (MOCK) =====")
-                return result
-            
             current_app.logger.info("🌐 VEO: Using real Veo API for status check")
             
             # Use real Veo API
@@ -426,6 +322,16 @@ class VeoClient:
                     current_app.logger.info("Operation is done!")
                     current_app.logger.info(f"Full result when done: {result}")
                     
+                    # Check for error first
+                    if 'error' in result:
+                        error = result['error']
+                        current_app.logger.error(f"Operation failed with error: {error}")
+                        return {
+                            'success': False,
+                            'status': 'failed',
+                            'error': error.get('message', 'Unknown error')
+                        }
+                    
                     # Operation completed successfully
                     if 'response' in result:
                         current_app.logger.info("Response data found in result")
@@ -434,7 +340,7 @@ class VeoClient:
                         current_app.logger.info(f"Response data type: {type(response_data)}")
                         current_app.logger.info(f"Response data keys: {list(response_data.keys()) if isinstance(response_data, dict) else 'Not a dict'}")
                         
-                                                   # Handle Veo 3 response format
+                        # Handle Veo 3 response format
                         if 'videos' in response_data:
                             current_app.logger.info("Veo 3 format detected")
                             videos = response_data['videos']
@@ -598,6 +504,33 @@ class VeoClient:
                             'duration': 60 if 'veo-3.0' in operation_name else 8
                         }
                     
+                    # NEW: Try to construct the expected GCS URL based on operation name
+                    current_app.logger.info("Attempting to construct expected GCS URL from operation name")
+                    operation_id = operation_name.split('/')[-1]
+                    bucket_name = "prompt-veo-videos"
+                    expected_gcs_url = f"gs://{bucket_name}/videos/{operation_id}.mp4"
+                    current_app.logger.info(f"Expected GCS URL: {expected_gcs_url}")
+                    
+                    # Check if the file exists in GCS
+                    try:
+                        from google.cloud import storage
+                        storage_client = storage.Client()
+                        bucket = storage_client.bucket(bucket_name)
+                        blob = bucket.blob(f"videos/{operation_id}.mp4")
+                        
+                        if blob.exists():
+                            current_app.logger.info(f"✅ Found video file in GCS: {expected_gcs_url}")
+                            return {
+                                'success': True,
+                                'status': 'completed',
+                                'video_url': expected_gcs_url,
+                                'duration': 60 if 'veo-3.0' in operation_name else 8
+                            }
+                        else:
+                            current_app.logger.warning(f"❌ Expected video file not found in GCS: {expected_gcs_url}")
+                    except Exception as gcs_error:
+                        current_app.logger.error(f"❌ Error checking GCS for expected file: {gcs_error}")
+                    
                     # No video data found - this is an error
                     current_app.logger.error("❌ No video data found in completed operation")
                     current_app.logger.error(f"❌ Full response structure: {result}")
@@ -638,22 +571,4 @@ class VeoClient:
             return {
                 'success': False,
                 'error': str(e)
-            }
-    
-    def _mock_check_video_status(self, operation_name):
-        """Mock video status check for development"""
-        current_app.logger.info(f"🎭 Mock status check for operation: {operation_name}")
-        
-        # Determine duration based on model
-        duration = 60 if 'veo-3.0' in operation_name else 8
-        
-        # Simulate a completed video with proper duration
-        # Return a GCS URL that will be downloaded to local
-        mock_video_url = f"gs://mock-bucket/videos/mock-{operation_name.split('-')[-1]}.mp4"
-        
-        return {
-            'success': True,
-            'status': 'completed',
-            'video_url': mock_video_url,
-            'duration': duration
-        } 
+            } 

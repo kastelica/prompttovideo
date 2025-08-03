@@ -138,260 +138,322 @@
 </div>
 
 <!-- Videos List -->
-<div class="bg-white rounded-lg shadow-md mx-4 md:mx-0">
-    <div class="px-4 md:px-6 py-3 md:py-4 border-b">
-        <h2 class="text-lg md:text-xl font-semibold">Your Videos</h2>
+<div class="bg-white dark:bg-dark-800 rounded-xl shadow-lg mx-4 md:mx-0 overflow-hidden">
+    <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
+        <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">Your Videos</h2>
+            <div class="flex items-center space-x-2">
+                <span class="text-sm text-gray-600 dark:text-gray-400">{{ videos|length }} video{{ 's' if videos|length != 1 else '' }}</span>
+                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            </div>
+        </div>
     </div>
     
     {% if videos %}
-    <div class="divide-y divide-gray-200">
-        {% for video in videos %}
-        <div class="p-4 md:p-6">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0">
-                <div class="flex-1 flex items-start space-x-4">
-                                         {% if video.thumbnail_url and video.status == 'completed' %}
-                     <div class="flex-shrink-0">
-                         <a href="{{ url_for('main.watch_video', video_id=video.id, slug=video.slug or video.generate_slug()) }}" 
-                            class="block hover:opacity-80 transition-opacity duration-200">
-                             <img src="{{ video.thumbnail_url }}" 
-                                  alt="Video thumbnail" 
-                                  class="w-16 h-16 md:w-20 md:h-20 object-cover rounded-lg shadow-sm">
-                         </a>
-                     </div>
-                     {% else %}
-                     <div class="flex-shrink-0 w-16 h-16 md:w-20 md:h-20 bg-gray-200 rounded-lg flex items-center justify-center">
-                         <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                         </svg>
-                     </div>
-                     {% endif %}
-                    <div class="flex-1 min-w-0">
-                        <h3 class="text-base md:text-lg font-medium text-gray-900 mb-2 line-clamp-2">{{ video.prompt }}</h3>
-                        <div class="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 text-xs md:text-sm text-gray-600">
-                            <span>Quality: {{ video.quality }}</span>
-                            {% if video.quality == 'premium' %}
-                            <span class="flex items-center text-green-600">
-                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+    <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for video in videos %}
+            <div class="group bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transform hover:-translate-y-1">
+                <!-- Thumbnail Section -->
+                <div class="relative overflow-hidden">
+                    {% if video.thumbnail_url and video.status == 'completed' %}
+                    <a href="{{ url_for('main.watch_video', video_id=video.id, slug=video.slug or video.generate_slug()) }}" 
+                       class="block relative group">
+                        <img src="{{ video.thumbnail_url }}" 
+                             alt="Video thumbnail" 
+                             class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300">
+                        
+                        <!-- Play Button Overlay -->
+                        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center">
+                            <div class="bg-white bg-opacity-90 rounded-full p-3 transform scale-0 group-hover:scale-100 transition-transform duration-300">
+                                <svg class="w-6 h-6 text-gray-900" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        
+                        <!-- Quality Badge -->
+                        <div class="absolute top-3 left-3">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full
+                                {% if video.quality == 'premium' %}bg-gradient-to-r from-purple-500 to-pink-500 text-white
+                                {% else %}bg-gradient-to-r from-gray-600 to-gray-700 text-white{% endif %}">
+                                {{ video.quality|title }}
+                            </span>
+                        </div>
+                        
+                        <!-- Audio Indicator -->
+                        {% if video.quality == 'premium' %}
+                        <div class="absolute top-3 right-3">
+                            <div class="bg-green-500 bg-opacity-90 rounded-full p-2">
+                                <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.794L4.5 14H2a1 1 0 01-1-1V7a1 1 0 011-1h2.5l3.883-2.794a1 1 0 011.617.794zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                                 </svg>
-                                AI Audio
-                            </span>
-                            {% else %}
-                            <span class="flex items-center text-gray-500">
-                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
-                                </svg>
-                                No Audio
-                            </span>
-                            {% endif %}
-                            <span>Created: {{ video.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
-                            {% if video.views %}
-                            <span>{{ video.views }} views</span>
-                            {% endif %}
+                            </div>
                         </div>
+                        {% endif %}
+                    </a>
+                    {% else %}
+                    <div class="w-full h-48 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center">
+                        <div class="text-center">
+                            <svg class="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Processing...</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Status Indicator -->
+                    <div class="absolute bottom-3 left-3">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold
+                            {% if video.status == 'completed' %}bg-green-500 text-white
+                            {% elif video.status == 'processing' %}bg-yellow-500 text-white animate-pulse
+                            {% elif video.status == 'pending' %}bg-blue-500 text-white
+                            {% else %}bg-red-500 text-white{% endif %}">
+                            {{ video.status|title }}
+                        </span>
                     </div>
                 </div>
                 
-                <div class="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
-                    <!-- Status Badge -->
-                    <span class="px-2 md:px-3 py-1 rounded-full text-xs md:text-sm font-medium
-                        {% if video.status == 'completed' %}bg-green-100 text-green-800
-                        {% elif video.status == 'processing' %}bg-yellow-100 text-yellow-800
-                        {% elif video.status == 'pending' %}bg-blue-100 text-blue-800
-                        {% else %}bg-red-100 text-red-800{% endif %}">
-                        {{ video.status|title }}
-                    </span>
+                <!-- Content Section -->
+                <div class="p-4">
+                    <!-- Title -->
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200">
+                        {{ video.prompt }}
+                    </h3>
                     
-                    <!-- Actions -->
-                    {% if video.status == 'completed' %}
-                    <div class="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+                    <!-- Metadata -->
+                    <div class="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        <div class="flex items-center space-x-3">
+                            <span class="flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                {{ video.created_at.strftime('%b %d, %Y') }}
+                            </span>
+                            {% if video.views %}
+                            <span class="flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                {{ video.views }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Audio Status -->
+                        {% if video.quality == 'premium' %}
+                        <span class="flex items-center text-green-600 dark:text-green-400">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.794L4.5 14H2a1 1 0 01-1-1V7a1 1 0 011-1h2.5l3.883-2.794a1 1 0 011.617.794zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                            AI Audio
+                        </span>
+                        {% else %}
+                        <span class="flex items-center text-gray-500 dark:text-gray-400">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+                            </svg>
+                            No Audio
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex items-center space-x-2">
+                        {% if video.status == 'completed' %}
                         <a href="{{ url_for('main.watch_video', video_id=video.id, slug=video.slug or video.generate_slug()) }}" 
-                           class="inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm font-medium rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105">
+                           class="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center">
                             <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M8 5v14l11-7z"/>
                             </svg>
-                            Watch Video
+                            Watch
                         </a>
                         
-                        <!-- Share Controls -->
-                        <div class="relative">
-                            <button onclick="toggleShareMenu({{ video.id }})" 
-                                    class="inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 transition-colors shadow-sm">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
-                                </svg>
-                                Share
-                            </button>
-                            
-                            <!-- Share Menu -->
-                            <div id="shareMenu{{ video.id }}" class="hidden absolute right-0 mt-2 w-64 md:w-72 bg-white rounded-xl shadow-2xl border border-gray-200 z-20 transform transition-all duration-200">
-                                <div class="p-4">
-                                    <div class="flex items-center justify-between mb-3">
-                                        <h4 class="text-sm font-semibold text-gray-900">Share Video</h4>
-                                        <button onclick="toggleShareMenu({{ video.id }})" class="text-gray-400 hover:text-gray-600">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                    
-                                                                         <!-- Visibility Controls -->
-                                     {% if video.public %}
-                                     <button onclick="unshareVideo({{ video.id }})" 
-                                             class="w-full text-left px-4 py-3 text-sm hover:bg-red-50 rounded-lg flex items-center transition-colors duration-200 border border-transparent hover:border-red-200">
-                                         <svg class="w-5 h-5 mr-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                                         </svg>
-                                         <div>
-                                             <div class="font-medium text-gray-900">Make Private</div>
-                                             <div class="text-xs text-gray-500">Remove from public gallery</div>
-                                         </div>
-                                     </button>
-                                     {% else %}
-                                     <button onclick="shareVideo({{ video.id }}, 'public')" 
-                                             class="w-full text-left px-4 py-3 text-sm hover:bg-green-50 rounded-lg flex items-center transition-colors duration-200 border border-transparent hover:border-green-200">
-                                         <svg class="w-5 h-5 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
-                                         </svg>
-                                         <div>
-                                             <div class="font-medium text-gray-900">Make Public</div>
-                                             <div class="text-xs text-gray-500">Add to public gallery</div>
-                                         </div>
-                                     </button>
-                                     <button onclick="shareVideo({{ video.id }}, 'private')" 
-                                             class="w-full text-left px-4 py-3 text-sm hover:bg-blue-50 rounded-lg flex items-center transition-colors duration-200 border border-transparent hover:border-blue-200">
-                                         <svg class="w-5 h-5 mr-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
-                                         </svg>
-                                         <div>
-                                             <div class="font-medium text-gray-900">Get Share Link</div>
-                                             <div class="text-xs text-gray-500">Create private share link</div>
-                                         </div>
-                                     </button>
-                                     {% endif %}
-                                     
-                                     <!-- Social Media Sharing -->
-                                     <div class="border-t border-gray-200 pt-4 mt-4">
-                                         <h5 class="text-xs font-semibold text-gray-700 mb-3 uppercase tracking-wide">Share to Social</h5>
-                                         <div class="grid grid-cols-2 gap-2">
-                                             <button onclick="shareToTwitter({{ video.id }})" 
-                                                     class="flex items-center justify-center px-3 py-2 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200">
-                                                 <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                                                     <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-                                                 </svg>
-                                                 Twitter
-                                             </button>
-                                             <button onclick="shareToFacebook({{ video.id }})" 
-                                                     class="flex items-center justify-center px-3 py-2 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
-                                                 <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                                                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                                                 </svg>
-                                                 Facebook
-                                             </button>
-                                             <button onclick="shareToLinkedIn({{ video.id }})" 
-                                                     class="flex items-center justify-center px-3 py-2 text-xs bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors duration-200">
-                                                 <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                                                     <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                                                 </svg>
-                                                 LinkedIn
-                                             </button>
-                                             <button onclick="shareViaEmail({{ video.id }})" 
-                                                     class="flex items-center justify-center px-3 py-2 text-xs bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200">
-                                                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                                                 </svg>
-                                                 Email
-                                             </button>
-                                         </div>
-                                     </div>
-                                     
-                                     <!-- Download Options -->
-                                     <div class="border-t border-gray-200 pt-4 mt-4">
-                                         <h5 class="text-xs font-semibold text-gray-700 mb-3 uppercase tracking-wide">Download</h5>
-                                         <button onclick="downloadVideo({{ video.id }})" 
-                                                 class="w-full text-left px-4 py-3 text-sm hover:bg-purple-50 rounded-lg flex items-center transition-colors duration-200 border border-transparent hover:border-purple-200">
-                                             <svg class="w-5 h-5 mr-3 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                             </svg>
-                                             <div>
-                                                 <div class="font-medium text-gray-900">Download Video</div>
-                                                 <div class="text-xs text-gray-500">Save to your device</div>
-                                             </div>
-                                         </button>
-                                     </div>
-                                     
-                                     <!-- Embed Options -->
-                                     <div class="border-t border-gray-200 pt-4 mt-4">
-                                         <h5 class="text-xs font-semibold text-gray-700 mb-3 uppercase tracking-wide">Embed</h5>
-                                         <button onclick="copyEmbedCode({{ video.id }})" 
-                                                 class="w-full text-left px-4 py-3 text-sm hover:bg-orange-50 rounded-lg flex items-center transition-colors duration-200 border border-transparent hover:border-orange-200">
-                                             <svg class="w-5 h-5 mr-3 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
-                                             </svg>
-                                             <div>
-                                                 <div class="font-medium text-gray-900">Copy Embed Code</div>
-                                                 <div class="text-xs text-gray-500">For websites & blogs</div>
-                                             </div>
-                                         </button>
-                                     </div>
-                                    
-                                    {% if video.share_token %}
-                                    <div class="border-t border-gray-200 pt-4 mt-4">
-                                        <label class="block text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Share Link</label>
-                                        <div class="relative">
-                                            <input type="text" 
-                                                   id="shareUrl{{ video.id }}" 
-                                                   value="{{ video.get_share_url() }}" 
-                                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                   readonly>
-                                            <button onclick="copyShareUrl({{ video.id }})" 
-                                                    class="absolute right-2 top-1/2 transform -translate-y-1/2 px-3 py-1 text-xs bg-blue-500 text-white hover:bg-blue-600 rounded-md transition-colors duration-200 flex items-center">
-                                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                                                </svg>
-                                                Copy
-                                            </button>
-                                        </div>
-                                        <div class="mt-2 text-xs text-gray-500">Anyone with this link can view your video</div>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
+                        <button onclick="toggleShareMenu({{ video.id }})" 
+                                class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-200">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
+                            </svg>
+                        </button>
+                        {% elif video.status == 'processing' %}
+                        <button onclick="checkStatus({{ video.id }})" 
+                                class="flex-1 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white text-sm font-medium py-2 px-4 rounded-lg hover:from-yellow-600 hover:to-yellow-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Check Status
+                        </button>
+                        {% endif %}
                     </div>
-                    {% elif video.status == 'processing' %}
-                    <button onclick="checkStatus({{ video.id }})" 
-                            class="inline-flex items-center justify-center px-4 py-2 bg-yellow-500 text-white text-sm font-medium rounded-md hover:bg-yellow-600 transition-colors shadow-sm">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        Check Status
-                    </button>
+                    
+                    <!-- Processing Progress Bar -->
+                    {% if video.status == 'processing' %}
+                    <div class="mt-3">
+                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                            <div class="bg-gradient-to-r from-yellow-400 to-yellow-600 h-2 rounded-full animate-pulse" style="width: 60%"></div>
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-400 mt-2 text-center">Processing your video...</p>
+                    </div>
                     {% endif %}
                 </div>
-            </div>
-            
-            {% if video.status == 'processing' %}
-            <div class="mt-3 md:mt-4">
-                <div class="w-full bg-gray-200 rounded-full h-2">
-                    <div class="bg-primary h-2 rounded-full animate-pulse" style="width: 60%"></div>
+                
+                <!-- Share Menu (Positioned absolutely) -->
+                {% if video.status == 'completed' %}
+                <div id="shareMenu{{ video.id }}" class="hidden absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-20 transform transition-all duration-200">
+                    <div class="p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Share Video</h4>
+                            <button onclick="toggleShareMenu({{ video.id }})" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <!-- Visibility Controls -->
+                        {% if video.public %}
+                        <button onclick="unshareVideo({{ video.id }})" 
+                                class="w-full text-left px-4 py-3 text-sm hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg flex items-center transition-colors duration-200 border border-transparent hover:border-red-200 dark:hover:border-red-700">
+                            <svg class="w-5 h-5 mr-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                            </svg>
+                            <div>
+                                <div class="font-medium text-gray-900 dark:text-gray-100">Make Private</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">Remove from public gallery</div>
+                            </div>
+                        </button>
+                        {% else %}
+                        <button onclick="shareVideo({{ video.id }}, 'public')" 
+                                class="w-full text-left px-4 py-3 text-sm hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg flex items-center transition-colors duration-200 border border-transparent hover:border-green-200 dark:hover:border-green-700">
+                            <svg class="w-5 h-5 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
+                            </svg>
+                            <div>
+                                <div class="font-medium text-gray-900 dark:text-gray-100">Make Public</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">Add to public gallery</div>
+                            </div>
+                        </button>
+                        <button onclick="shareVideo({{ video.id }}, 'private')" 
+                                class="w-full text-left px-4 py-3 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg flex items-center transition-colors duration-200 border border-transparent hover:border-blue-200 dark:hover:border-blue-700">
+                            <svg class="w-5 h-5 mr-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                            </svg>
+                            <div>
+                                <div class="font-medium text-gray-900 dark:text-gray-100">Get Share Link</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">Create private share link</div>
+                            </div>
+                        </button>
+                        {% endif %}
+                        
+                        <!-- Social Media Sharing -->
+                        <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                            <h5 class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">Share to Social</h5>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="shareToTwitter({{ video.id }})" 
+                                        class="flex items-center justify-center px-3 py-2 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                                    </svg>
+                                    Twitter
+                                </button>
+                                <button onclick="shareToFacebook({{ video.id }})" 
+                                        class="flex items-center justify-center px-3 py-2 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                                    </svg>
+                                    Facebook
+                                </button>
+                                <button onclick="shareToLinkedIn({{ video.id }})" 
+                                        class="flex items-center justify-center px-3 py-2 text-xs bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors duration-200">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                                    </svg>
+                                    LinkedIn
+                                </button>
+                                <button onclick="shareViaEmail({{ video.id }})" 
+                                        class="flex items-center justify-center px-3 py-2 text-xs bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200">
+                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                    </svg>
+                                    Email
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Download Options -->
+                        <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                            <h5 class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">Download</h5>
+                            <button onclick="downloadVideo({{ video.id }})" 
+                                    class="w-full text-left px-4 py-3 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg flex items-center transition-colors duration-200 border border-transparent hover:border-purple-200 dark:hover:border-purple-700">
+                                <svg class="w-5 h-5 mr-3 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <div>
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">Download Video</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">Save to your device</div>
+                                </div>
+                            </button>
+                        </div>
+                        
+                        <!-- Embed Options -->
+                        <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                            <h5 class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">Embed</h5>
+                            <button onclick="copyEmbedCode({{ video.id }})" 
+                                    class="w-full text-left px-4 py-3 text-sm hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg flex items-center transition-colors duration-200 border border-transparent hover:border-orange-200 dark:hover:border-orange-700">
+                                <svg class="w-5 h-5 mr-3 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                                </svg>
+                                <div>
+                                    <div class="font-medium text-gray-900 dark:text-gray-100">Copy Embed Code</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">For websites & blogs</div>
+                                </div>
+                            </button>
+                        </div>
+                        
+                        {% if video.share_token %}
+                        <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                            <label class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">Share Link</label>
+                            <div class="relative">
+                                <input type="text" 
+                                       id="shareUrl{{ video.id }}" 
+                                       value="{{ video.get_share_url() }}" 
+                                       class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100"
+                                       readonly>
+                                <button onclick="copyShareUrl({{ video.id }})" 
+                                        class="absolute right-2 top-1/2 transform -translate-y-1/2 px-3 py-1 text-xs bg-blue-500 text-white hover:bg-blue-600 rounded-md transition-colors duration-200 flex items-center">
+                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                    </svg>
+                                    Copy
+                                </button>
+                            </div>
+                            <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">Anyone with this link can view your video</div>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
-                <p class="text-xs md:text-sm text-gray-600 mt-2">Processing your video...</p>
+                {% endif %}
             </div>
-            {% endif %}
+            {% endfor %}
         </div>
-        {% endfor %}
     </div>
     {% else %}
-    <div class="p-4 md:p-6 text-center">
-        <svg class="mx-auto h-10 w-10 md:h-12 md:w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-        </svg>
-        <h3 class="mt-2 text-sm font-medium text-gray-900">No videos yet</h3>
-        <p class="mt-1 text-xs md:text-sm text-gray-500">Get started by generating your first video.</p>
-        <div class="mt-4 md:mt-6">
-            <a href="{{ url_for('main.index') }}" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-secondary text-sm">
-                Generate Video
+    <div class="p-12 text-center">
+        <div class="max-w-md mx-auto">
+            <div class="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                <svg class="w-12 h-12 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No videos yet</h3>
+            <p class="text-gray-600 dark:text-gray-400 mb-6">Start creating amazing videos with AI. Your first video is just a prompt away!</p>
+            <a href="{{ url_for('main.index') }}" class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                Create Your First Video
             </a>
         </div>
     </div>
@@ -420,13 +482,9 @@
 // Load queue status and rate limit information
 async function loadQueueStatus() {
     try {
-        const response = await fetch('/api/queue/status', {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-            }
-        });
+        const response = await authenticatedFetch('/api/queue/status');
         
-        if (response.ok) {
+        if (response && response.ok) {
             const data = await response.json();
             const queueStatusElement = document.getElementById('queue-status');
             
@@ -444,13 +502,9 @@ async function loadQueueStatus() {
 
 async function loadReferralInfo() {
     try {
-        const response = await fetch('/api/referrals/stats', {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-            }
-        });
+        const response = await authenticatedFetch('/api/referrals/stats');
         
-        if (response.ok) {
+        if (response && response.ok) {
             const data = await response.json();
             const referralCountElement = document.getElementById('referral-count');
             referralCountElement.textContent = data.total_referrals || 0;
@@ -475,18 +529,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function checkStatus(videoId) {
     try {
-        const response = await fetch(`/api/videos/${videoId}/status`);
-        const data = await response.json();
+        const response = await authenticatedFetch(`/api/videos/${videoId}/status`);
         
-        if (data.status === 'completed') {
-            // Reload page to show completed video
-            window.location.reload();
-        } else {
-            // Show current status
-            alert(`Video status: ${data.status}`);
+        if (response && response.ok) {
+            const data = await response.json();
+            
+            if (data.status === 'completed') {
+                // Reload page to show completed video
+                window.location.reload();
+            } else {
+                // Show current status with notification
+                showNotification({
+                    type: 'info',
+                    title: 'Video Status',
+                    message: `Your video is currently: ${data.status}`,
+                    duration: 3000
+                });
+            }
         }
     } catch (error) {
-        alert('Error checking video status');
+        showNotification({
+            type: 'error',
+            title: 'Error',
+            message: 'Failed to check video status. Please try again.',
+            duration: 3000
+        });
     }
 }
 

@@ -8,9 +8,8 @@ import re
 def generate_signed_url(gcs_url):
     """Generate signed URL for video access"""
     try:
-        # For mock mode or fallback URLs, return a working video URL
+        # For testing or fallback URLs, return a working video URL
         if (current_app.config.get('TESTING') or 
-            current_app.config.get('VEO_MOCK_MODE', False) or
             'mock-bucket' in gcs_url or 
             'fallback' in gcs_url):
             current_app.logger.info("Using mock/fallback signed URL")
@@ -62,7 +61,7 @@ def generate_thumbnail_signed_url(thumbnail_path):
     """Generate signed URL for thumbnail access"""
     try:
         # For mock mode, return a mock thumbnail URL
-        if current_app.config.get('TESTING') or current_app.config.get('VEO_MOCK_MODE', False):
+        if current_app.config.get('TESTING'):
             current_app.logger.info("Using mock thumbnail URL for development")
             return "https://via.placeholder.com/320x180/000000/FFFFFF?text=Thumbnail"
         

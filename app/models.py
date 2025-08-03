@@ -139,9 +139,9 @@ class User(UserMixin, db.Model):
         """Check if user can make an API call based on rate limits"""
         self.reset_api_calls()
         
-        # In development/mock mode, allow much higher limits for testing
-        if current_app.config.get('TESTING') or current_app.config.get('VEO_MOCK_MODE', False):
-            # Allow 1000 calls per day in development
+        # In testing mode, allow much higher limits for testing
+        if current_app.config.get('TESTING'):
+            # Allow 1000 calls per day in testing
             return self.api_calls_today < 1000
         
         # Get rate limits based on subscription tier
@@ -168,9 +168,9 @@ class User(UserMixin, db.Model):
         """Get current rate limit information"""
         self.reset_api_calls()
         
-        # In development/mock mode, show development limits
-        if current_app.config.get('TESTING') or current_app.config.get('VEO_MOCK_MODE', False):
-            limit = 1000  # Development limit
+        # In testing mode, show testing limits
+        if current_app.config.get('TESTING'):
+            limit = 1000  # Testing limit
             remaining = limit - self.api_calls_today
             return {
                 'tier': 'development',

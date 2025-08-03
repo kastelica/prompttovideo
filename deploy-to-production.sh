@@ -77,7 +77,6 @@ gcloud run deploy $SERVICE_NAME \
   --set-env-vars "DATABASE_URL=postgresql://prompttovideo:PromptToVideo2024!@/prompttovideo?host=/cloudsql/$PROJECT_ID:$REGION:prompttovideo-db" \
   --set-env-vars "GCS_BUCKET_NAME=prompt-veo-videos" \
   --set-env-vars "GOOGLE_CLOUD_PROJECT_ID=$PROJECT_ID" \
-  --set-env-vars "VEO_MOCK_MODE=false" \
   --set-env-vars "GEMINI_API_KEY=your_gemini_api_key" \
   --set-env-vars "DAILY_FREE_CREDITS=3" \
   --set-env-vars "CREDIT_COST_FREE=1" \
@@ -108,7 +107,6 @@ gcloud run deploy $WORKER_SERVICE_NAME \
   --set-env-vars "DATABASE_URL=postgresql://prompttovideo:PromptToVideo2024!@/prompttovideo?host=/cloudsql/$PROJECT_ID:$REGION:prompttovideo-db" \
   --set-env-vars "GCS_BUCKET_NAME=prompt-veo-videos" \
   --set-env-vars "GOOGLE_CLOUD_PROJECT_ID=$PROJECT_ID" \
-  --set-env-vars "VEO_MOCK_MODE=false" \
   --set-env-vars "GEMINI_API_KEY=your_gemini_api_key" \
   --set-env-vars "DAILY_FREE_CREDITS=3" \
   --set-env-vars "CREDIT_COST_FREE=1" \

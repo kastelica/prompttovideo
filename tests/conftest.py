@@ -21,7 +21,7 @@ def app():
         'TESTING': True,
         'DATABASE_URL': f'sqlite:///{db_path}',
         'GCS_BUCKET_NAME': 'test-bucket',
-        'VEO_MOCK_MODE': True,
+    
         'SECRET_KEY': 'test-secret-key',
         'JWT_SECRET_KEY': 'test-jwt-secret'
     })

@@ -45,7 +45,12 @@ def login_required(f):
         
         if not token:
             current_app.logger.error("No Authorization header found")
-            return jsonify({'error': 'Authorization header required'}), 401
+            return jsonify({
+                'error': 'Authentication required',
+                'message': 'Please log in to access this feature',
+                'code': 'AUTH_REQUIRED',
+                'redirect': '/auth/login-page?auth_required=true'
+            }), 401
         
         if token.startswith('Bearer '):
             token = token[7:]
@@ -58,14 +63,24 @@ def login_required(f):
         
         if not user_id:
             current_app.logger.error("Token verification failed - invalid or expired token")
-            return jsonify({'error': 'Invalid or expired token'}), 401
+            return jsonify({
+                'error': 'Session expired',
+                'message': 'Your session has expired. Please log in again.',
+                'code': 'TOKEN_EXPIRED',
+                'redirect': '/auth/login-page?session_expired=true'
+            }), 401
         
         user = User.query.get(user_id)
         current_app.logger.info(f"User lookup result: {user.email if user else 'NOT FOUND'}")
         
         if not user:
             current_app.logger.error(f"User not found for ID: {user_id}")
-            return jsonify({'error': 'User not found'}), 401
+            return jsonify({
+                'error': 'User not found',
+                'message': 'Your account could not be found. Please log in again.',
+                'code': 'USER_NOT_FOUND',
+                'redirect': '/auth/login-page?session_expired=true'
+            }), 401
         
         request.user_id = user_id
         request.current_user = user
@@ -81,22 +96,41 @@ def admin_required(f):
         token = request.headers.get('Authorization')
         
         if not token:
-            return jsonify({'error': 'Authorization header required'}), 401
+            return jsonify({
+                'error': 'Authentication required',
+                'message': 'Please log in to access this feature',
+                'code': 'AUTH_REQUIRED',
+                'redirect': '/auth/login-page?auth_required=true'
+            }), 401
         
         if token.startswith('Bearer '):
             token = token[7:]
         
         user_id = verify_token(token)
         if not user_id:
-            return jsonify({'error': 'Invalid or expired token'}), 401
+            return jsonify({
+                'error': 'Session expired',
+                'message': 'Your session has expired. Please log in again.',
+                'code': 'TOKEN_EXPIRED',
+                'redirect': '/auth/login-page?session_expired=true'
+            }), 401
         
         user = User.query.get(user_id)
         if not user:
-            return jsonify({'error': 'User not found'}), 401
+            return jsonify({
+                'error': 'User not found',
+                'message': 'Your account could not be found. Please log in again.',
+                'code': 'USER_NOT_FOUND',
+                'redirect': '/auth/login-page?session_expired=true'
+            }), 401
         
         # Check if user is admin (you'll need to add admin field to User model)
         if not hasattr(user, 'is_admin') or not user.is_admin:
-            return jsonify({'error': 'Admin access required'}), 403
+            return jsonify({
+                'error': 'Access denied',
+                'message': 'You do not have permission to access this feature.',
+                'code': 'ADMIN_REQUIRED'
+            }), 403
         
         request.user_id = user_id
         request.current_user = user

@@ -321,97 +321,30 @@ def call_veo_api(prompt, quality):
 def check_veo_status(operation_name):
     """Check Veo API operation status"""
     try:
-        # Get access token from gcloud
-        access_token = get_gcloud_access_token()
-        if not access_token:
-            print("❌ Failed to get Google Cloud access token")
-            return None
+        from app.veo_client import VeoClient
         
-        # Get project ID from environment or use default
-        project_id = os.environ.get('GOOGLE_CLOUD_PROJECT', 'dirly-466300')
-        print(f"🔧 Using Google Cloud project: {project_id}")
+        # Use the improved VeoClient
+        veo_client = VeoClient()
+        result = veo_client.check_video_status(operation_name)
         
-        # Extract model ID from operation name
-        # operation_name format: projects/PROJECT_ID/locations/us-central1/publishers/google/models/MODEL_ID/operations/OPERATION_ID
-        parts = operation_name.split('/')
-        model_id = parts[-3]  # MODEL_ID is the third to last part
-        
-        # API endpoint for checking operation status
-        url = f"https://us-central1-aiplatform.googleapis.com/v1/projects/{project_id}/locations/us-central1/publishers/google/models/{model_id}:fetchPredictOperation"
-        
-        # Request payload
-        payload = {
-            "operationName": operation_name
-        }
-        
-        # Make API request
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json"
-        }
-        
-        response = requests.post(url, json=payload, headers=headers, timeout=30)
-        
-        if response.status_code == 200:
-            data = response.json()
-            
-            if data.get('done', False):
-                # Operation is complete
-                print("✅ Operation completed, checking for video data...")
-                
-                # Try different response structures
-                response_data = data.get('response', {})
-                print(f"📄 Response type: {response_data.get('@type', 'Unknown')}")
-                
-                # Check for videos array in response
-                videos = response_data.get('videos', [])
-                if videos and len(videos) > 0:
-                    video_data = videos[0]
-                    
-                    # Check for GCS URI first
-                    if 'gcsUri' in video_data:
-                        video_uri = video_data['gcsUri']
-                        print(f"✅ Video generation completed (GCS): {video_uri}")
-                        return video_uri
-                    
-                    # Check for base64-encoded video data
-                    elif 'bytesBase64Encoded' in video_data:
-                        video_base64 = video_data['bytesBase64Encoded']
-                        print(f"✅ Video generation completed (Base64): {len(video_base64)} chars")
-                        return video_base64
-                    
-                    # Check for mime type
-                    elif 'mimeType' in video_data:
-                        print(f"✅ Video generation completed (MIME: {video_data['mimeType']})")
-                        # Return the entire video data object for further processing
-                        return video_data
-                    
-                    else:
-                        print(f"❌ Unknown video format: {list(video_data.keys())}")
-                        return None
-                
-                # Check for direct video data in response
-                if 'gcsUri' in response_data:
-                    video_uri = response_data['gcsUri']
-                    print(f"✅ Video generation completed (direct): {video_uri}")
-                    return video_uri
-                
-                # Check for video data in different locations
-                if 'video' in response_data:
-                    video_data = response_data['video']
-                    if isinstance(video_data, dict) and 'gcsUri' in video_data:
-                        video_uri = video_data['gcsUri']
-                        print(f"✅ Video generation completed (nested): {video_uri}")
-                        return video_uri
-                
-                print("❌ No video found in completed operation")
-                print(f"🔍 Available keys in response_data: {list(response_data.keys())}")
+        if result.get('success'):
+            if result.get('status') == 'completed':
+                video_url = result.get('video_url')
+                if video_url:
+                    print(f"✅ Video generation completed: {video_url}")
+                    return video_url
+                else:
+                    print(f"❌ No video URL in successful response")
+                    return None
+            elif result.get('status') == 'processing':
+                print(f"⏳ Video still processing...")
                 return None
             else:
-                # Operation still running
+                print(f"❌ Unknown status: {result.get('status')}")
                 return None
         else:
-            print(f"❌ Veo API status check error: {response.status_code} - {response.text}")
+            error = result.get('error', 'Unknown error')
+            print(f"❌ Veo API error: {error}")
             return None
             
     except Exception as e:

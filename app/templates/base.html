@@ -560,6 +560,148 @@
             }
         }
         
+        // Global authentication handler
+        function handleAuthError(response, errorData) {
+            if (response.status === 401) {
+                // Clear expired token
+                localStorage.removeItem('auth_token');
+                
+                // Show user-friendly notification
+                showNotification({
+                    type: 'warning',
+                    title: 'Session Expired',
+                    message: errorData.message || 'Your session has expired. Please log in again.',
+                    duration: 5000
+                });
+                
+                // Redirect to login if specified
+                if (errorData.redirect) {
+                    setTimeout(() => {
+                        window.location.href = errorData.redirect;
+                    }, 2000);
+                }
+                
+                // Update navigation to show login state
+                updateNavigationForLogout();
+                
+                return true; // Error was handled
+            }
+            return false; // Error was not handled
+        }
+        
+        // Update navigation when user logs out
+        function updateNavigationForLogout() {
+            const navLogin = document.getElementById('navLogin');
+            const navSignup = document.getElementById('navSignup');
+            const navProfile = document.getElementById('navProfile');
+            const mobileNavLogin = document.getElementById('mobileNavLogin');
+            const mobileNavSignup = document.getElementById('mobileNavSignup');
+            
+            if (navProfile) navProfile.classList.add('hidden');
+            if (navLogin) navLogin.classList.remove('hidden');
+            if (navSignup) navSignup.classList.remove('hidden');
+            if (mobileNavLogin) mobileNavLogin.classList.remove('hidden');
+            if (mobileNavSignup) mobileNavSignup.classList.remove('hidden');
+        }
+        
+        // Enhanced fetch function with auth error handling
+        async function authenticatedFetch(url, options = {}) {
+            const authToken = localStorage.getItem('auth_token');
+            
+            // Add auth header if token exists
+            if (authToken) {
+                options.headers = {
+                    ...options.headers,
+                    'Authorization': `Bearer ${authToken}`
+                };
+            }
+            
+            try {
+                const response = await fetch(url, options);
+                
+                // Handle authentication errors
+                if (response.status === 401) {
+                    const errorData = await response.json();
+                    if (handleAuthError(response, errorData)) {
+                        return null; // Error was handled, return null
+                    }
+                }
+                
+                return response;
+            } catch (error) {
+                console.error('Fetch error:', error);
+                return null;
+            }
+        }
+        
+        // Enhanced notification system
+        function showNotification({ type = 'info', title, message, duration = 3000 }) {
+            // Remove existing notifications
+            const existingNotifications = document.querySelectorAll('.auth-notification');
+            existingNotifications.forEach(notification => notification.remove());
+            
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `auth-notification fixed top-4 right-4 z-50 max-w-sm w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border-l-4 p-4 transform transition-all duration-300 translate-x-full`;
+            
+            // Set border color based on type
+            const borderColors = {
+                'success': 'border-green-500',
+                'error': 'border-red-500',
+                'warning': 'border-yellow-500',
+                'info': 'border-blue-500'
+            };
+            
+            notification.classList.add(borderColors[type] || borderColors.info);
+            
+            // Set icon based on type
+            const icons = {
+                'success': '<svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>',
+                'error': '<svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>',
+                'warning': '<svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>',
+                'info': '<svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>'
+            };
+            
+            notification.innerHTML = `
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        ${icons[type] || icons.info}
+                    </div>
+                    <div class="ml-3 flex-1">
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">${title}</h3>
+                        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">${message}</p>
+                    </div>
+                    <div class="ml-4 flex-shrink-0 flex">
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Add to page
+            document.body.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.classList.remove('translate-x-full');
+            }, 100);
+            
+            // Auto remove after duration
+            if (duration > 0) {
+                setTimeout(() => {
+                    notification.classList.add('translate-x-full');
+                    setTimeout(() => {
+                        if (notification.parentElement) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }, duration);
+            }
+        }
+        
         // Check authentication status and update navigation
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize dark mode
@@ -1143,5 +1285,53 @@
             localStorage.removeItem('auth_token');
             window.location.href = '/auth/login-page';
         }
+        
+        // Session expiry warning system
+        function checkSessionExpiry() {
+            const authToken = localStorage.getItem('auth_token');
+            if (!authToken) return;
+            
+            try {
+                // Decode JWT token to check expiration
+                const payload = JSON.parse(atob(authToken.split('.')[1]));
+                const expiryTime = payload.exp * 1000; // Convert to milliseconds
+                const currentTime = Date.now();
+                const timeUntilExpiry = expiryTime - currentTime;
+                
+                // Warn user 5 minutes before expiry
+                if (timeUntilExpiry > 0 && timeUntilExpiry < 300000) { // 5 minutes = 300000ms
+                    const minutesLeft = Math.ceil(timeUntilExpiry / 60000);
+                    
+                    showNotification({
+                        type: 'warning',
+                        title: 'Session Expiring Soon',
+                        message: `Your session will expire in ${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''}. Please save your work.`,
+                        duration: 0 // Don't auto-dismiss
+                    });
+                }
+                
+                // Clear token if expired
+                if (timeUntilExpiry <= 0) {
+                    localStorage.removeItem('auth_token');
+                    updateNavigationForLogout();
+                    showNotification({
+                        type: 'warning',
+                        title: 'Session Expired',
+                        message: 'Your session has expired. Please log in again.',
+                        duration: 5000
+                    });
+                }
+            } catch (error) {
+                console.error('Error checking session expiry:', error);
+            }
+        }
+        
+        // Check session expiry every minute
+        setInterval(checkSessionExpiry, 60000);
+        
+        // Also check on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkSessionExpiry();
+        });
     </script>
 </body>
