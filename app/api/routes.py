@@ -1175,7 +1175,7 @@ def api_get_user_profile(user_id):
     result['videos'] = [{
         'id': video.id,
         'title': video.title or (video.prompt[:60] + '...' if video.prompt and len(video.prompt) > 60 else video.prompt) or 'Untitled Video',
-        'thumbnail_url': video.thumbnail_url,
+        'thumbnail_url': video.get_thumbnail_url(),
         'views': video.views or 0,
         'created_at': video.created_at.isoformat(),
         'slug': video.slug or f"video-{video.id}"

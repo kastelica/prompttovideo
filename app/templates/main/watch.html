@@ -32,7 +32,6 @@
                     class="w-full h-auto"
                     controls
                     preload="metadata"
-                    poster="{{ video.get_thumbnail_url() or '' }}"
                     autoplay
                 >
                     <source src="{{ video.gcs_signed_url }}" type="video/mp4">
