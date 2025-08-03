@@ -159,7 +159,11 @@ def _generate_video_task(video_id):
 def get_gcloud_access_token():
     """Get Google Cloud access token using Google Auth library"""
     try:
-        # Use default credentials (will use gcloud auth)
+        # Clear any existing GOOGLE_APPLICATION_CREDENTIALS to use default service account
+        if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
+            del os.environ['GOOGLE_APPLICATION_CREDENTIALS']
+        
+        # Use default credentials (will use gcloud auth or default service account)
         credentials, project = default()
         
         # Refresh the token if needed

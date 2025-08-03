@@ -7,6 +7,14 @@ from app.models import User, CreditTransaction
 @pytest.fixture
 def app():
     app = create_app('testing')
+    
+    # Set up test configuration with mock Stripe keys
+    app.config.update({
+        'STRIPE_PUBLISHABLE_KEY': 'pk_test_mock_key',
+        'STRIPE_SECRET_KEY': 'sk_test_mock_key',
+        'STRIPE_WEBHOOK_SECRET': 'whsec_mock_secret'
+    })
+    
     with app.app_context():
         db.create_all()
         yield app
@@ -97,11 +105,10 @@ class TestPaymentRoutes:
         mock_stripe_retrieve.return_value = mock_session
         
         response = client.get('/payments/success?session_id=cs_test_123')
-        data = json.loads(response.data)
         
-        assert response.status_code == 200
-        assert data['success'] is True
-        assert 'Successfully purchased 10 credits!' in data['message']
+        # The route returns a redirect, not JSON
+        assert response.status_code == 302  # Redirect status
+        assert 'dashboard' in response.location  # Should redirect to dashboard
         
         # Verify credits were added to user
         user = User.query.get(user.id)
@@ -116,18 +123,18 @@ class TestPaymentRoutes:
     def test_success_payment_no_session_id(self, client):
         """Test success payment without session ID"""
         response = client.get('/payments/success')
-        data = json.loads(response.data)
         
-        assert response.status_code == 400
-        assert 'error' in data
+        # The route returns a redirect, not JSON
+        assert response.status_code == 302  # Redirect status
+        assert 'credit-packs-page' in response.location  # Should redirect to credit packs page
 
     def test_cancel_payment(self, client):
         """Test payment cancellation"""
         response = client.get('/payments/cancel')
-        data = json.loads(response.data)
         
-        assert response.status_code == 200
-        assert 'Payment was cancelled' in data['message']
+        # The route returns a redirect, not JSON
+        assert response.status_code == 302  # Redirect status
+        assert 'credit-packs-page' in response.location  # Should redirect to credit packs page
 
     def test_purchase_history(self, client, user, auth_headers):
         """Test getting purchase history"""

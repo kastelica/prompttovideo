@@ -27,12 +27,11 @@ class Config:
     
     # Google Cloud Storage
     GCS_BUCKET_NAME = os.environ.get('GCS_BUCKET_NAME') or 'prompttovideo-videos'
-    GOOGLE_APPLICATION_CREDENTIALS = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+    # For Cloud Run, use default service account credentials
+    # GOOGLE_APPLICATION_CREDENTIALS is not needed in Cloud Run
     
-    # Veo API configuration
-    VEO_API_KEY = os.environ.get('VEO_API_KEY')
-    VEO_API_URL = os.environ.get('VEO_API_URL') or 'https://api.veo.ai'
-    VEO_MOCK_MODE = os.environ.get('VEO_MOCK_MODE', 'false').lower() in ['true', 'on', '1']
+    # Veo API configuration (now uses Google Cloud authentication)
+    # No API key needed - uses gcloud auth print-access-token
     
     # Sentry configuration
     SENTRY_DSN = os.environ.get('SENTRY_DSN')
