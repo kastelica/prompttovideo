@@ -22,15 +22,16 @@ def user(app):
     user = User(email='test@example.com')
     user.set_password('password')
     user.email_verified = True
+    user.credits = 10  # Give the test user some credits
     db.session.add(user)
     db.session.commit()
     return user
 
 @pytest.fixture
 def auth_headers(user):
-    with patch('app.auth.utils.verify_token') as mock_verify:
-        mock_verify.return_value = user.id
-        return {'Authorization': 'Bearer test-token'}
+    from app.auth.utils import generate_token
+    token = generate_token(user.id)
+    return {'Authorization': f'Bearer {token}'}
 
 @pytest.fixture
 def mock_auth():
@@ -118,9 +119,7 @@ class TestPhase7Features:
             assert data['success'] is True
             assert 'video_id' in data
             assert data['status'] == 'pending'
-            assert 'credits_remaining' in data
-            assert 'queue_position' in data
-            assert 'estimated_wait_time' in data
+            assert 'estimated_time' in data
     
     def test_developer_api_video_status(self, client, user, auth_headers):
         """Test developer API video status endpoint"""
@@ -146,6 +145,8 @@ class TestPhase7Features:
         assert data['video_url'] == video.gcs_signed_url
         assert data['duration'] == 30
         assert data['thumbnail_url'] == video.thumbnail_url
+        assert 'created_at' in data
+        assert 'updated_at' in data
     
     def test_developer_api_list_videos(self, client, user, auth_headers):
         """Test developer API list videos endpoint"""

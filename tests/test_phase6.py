@@ -25,13 +25,16 @@ def user(app):
         credits=10,
         subscription_tier='basic'
     )
+    user.email_verified = True  # Ensure email is verified
     db.session.add(user)
     db.session.commit()
     return user
 
 @pytest.fixture
 def auth_headers(user):
-    return {'Authorization': 'Bearer test-token'}
+    from app.auth.utils import generate_token
+    token = generate_token(user.id)
+    return {'Authorization': f'Bearer {token}'}
 
 @pytest.fixture
 def mock_auth(monkeypatch):
