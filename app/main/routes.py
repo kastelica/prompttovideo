@@ -5,6 +5,7 @@ from app.auth.utils import login_required, verify_token
 from app.auth.rate_limit import rate_limit
 import json
 import requests
+import os
 from datetime import datetime
 
 @bp.route('/')
@@ -94,6 +95,12 @@ def generate_video():
             current_app.logger.error("❌ BACKEND: No prompt provided")
             return jsonify({'error': 'Prompt is required'}), 400
         
+        # Validate quality
+        valid_qualities = ['free', 'premium', '360p', '1080p']
+        if quality not in valid_qualities:
+            current_app.logger.error(f"❌ BACKEND: Invalid quality: {quality}")
+            return jsonify({'error': f'Invalid quality. Must be one of: {", ".join(valid_qualities)}'}), 400
+        
         # Get user
         user = User.query.get(user_id)
         if not user:
@@ -164,7 +171,12 @@ def generate_video():
             # Start video generation in background thread
             def run_video_generation():
                 try:
-                    generate_video_task(video.id)
+                    # Always create a new app context for background thread
+                    from app import create_app
+                    config_name = 'testing' if os.environ.get('FLASK_ENV') == 'testing' else None
+                    app = create_app(config_name)
+                    with app.app_context():
+                        generate_video_task(video.id)
                 except Exception as e:
                     # Use print instead of current_app.logger in background thread
                     print(f"❌ BACKEND: Background thread error: {e}")
