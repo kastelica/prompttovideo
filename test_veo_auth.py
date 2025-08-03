@@ -1,132 +1,141 @@
 #!/usr/bin/env python3
 """
-Test script to verify Veo API authentication
+Test script to diagnose VEO authentication issues
 """
 
 import os
 import sys
-import requests
-import json
+import logging
 
-# Add the app directory to the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-from app import create_app
-from app.veo_client import VeoClient
-
-def test_veo_auth():
-    """Test Veo API authentication"""
-    print("🔍 Testing Veo API Authentication")
+def test_environment():
+    """Test environment variables and authentication"""
+    print("🔍 TESTING VEO AUTHENTICATION")
     print("=" * 50)
     
-    try:
-        # Create Flask app and context
-        app = create_app('testing')
-        
-        with app.app_context():
-            # Create VeoClient instance
-            veo_client = VeoClient()
-            
-            # Test authentication
-            print("🔑 Testing authentication...")
-            token = veo_client._get_auth_token()
-            
-            if not token or token == "mock_token_for_development":
-                print("❌ Authentication failed - no valid token obtained")
-                return False
-            
-            print(f"✅ Authentication successful!")
-            print(f"🔍 Token type: {type(token)}")
-            print(f"🔍 Token length: {len(token)}")
-            print(f"🔍 Token preview: {token[:20]}...")
-            
-            # Test a simple API call to verify the token works
-            print("\n🌐 Testing API connectivity...")
-            
-            # Use the same headers as the VeoClient
-            headers = {
-                'Authorization': f'Bearer {token}',
-                'Content-Type': 'application/json'
-            }
-            
-            # Test with a simple Vertex AI API call (list models)
-            test_url = f"https://us-central1-aiplatform.googleapis.com/v1/projects/{veo_client.project_id}/locations/us-central1/models"
-            
-            print(f"🔗 Testing URL: {test_url}")
-            
-            response = requests.get(test_url, headers=headers, timeout=30)
-            
-            print(f"📡 Response status: {response.status_code}")
-            print(f"📡 Response headers: {dict(response.headers)}")
-            
-            if response.status_code == 200:
-                print("✅ API connectivity test successful!")
-                return True
-            else:
-                print(f"❌ API connectivity test failed: {response.status_code}")
-                print(f"📄 Response: {response.text}")
-                return False
-                
-    except Exception as e:
-        print(f"❌ Test failed with exception: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
-
-def test_veo_generate():
-    """Test Veo video generation (without actually generating)"""
-    print("\n🎬 Testing Veo video generation setup")
-    print("=" * 50)
-    
-    try:
-        # Create Flask app and context
-        app = create_app('testing')
-        
-        with app.app_context():
-            # Create VeoClient instance
-            veo_client = VeoClient()
-            
-            # Test the generate_video method setup (without making the actual API call)
-            print("🔧 Testing generate_video method setup...")
-            
-            # This will test the authentication and request preparation
-            result = veo_client.generate_video(
-                prompt="A beautiful sunset over the ocean",
-                quality='free',
-                duration=8
-            )
-            
-            print(f"📤 Generate result: {result}")
-            
-            if result.get('success'):
-                print("✅ Video generation setup successful!")
-                return True
-            else:
-                print(f"❌ Video generation setup failed: {result.get('error')}")
-                return False
-                
-    except Exception as e:
-        print(f"❌ Generate test failed with exception: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
-
-if __name__ == "__main__":
-    print("🚀 Veo API Authentication Test")
-    print("=" * 50)
-    
-    # Test authentication
-    auth_success = test_veo_auth()
-    
-    if auth_success:
-        # Test generation setup
-        generate_success = test_veo_generate()
-        
-        if generate_success:
-            print("\n🎉 All tests passed! Veo API should work correctly.")
+    # Check environment variables
+    print("\n📋 ENVIRONMENT VARIABLES:")
+    gac = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+    if gac:
+        print(f"   GOOGLE_APPLICATION_CREDENTIALS: {gac}")
+        if os.path.exists(gac):
+            print(f"   ✅ File exists: {gac}")
         else:
-            print("\n⚠️ Authentication works but generation setup failed.")
+            print(f"   ❌ File does NOT exist: {gac}")
+            print("   🔄 Removing environment variable...")
+            if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
+                del os.environ['GOOGLE_APPLICATION_CREDENTIALS']
+            print("   ✅ Environment variable removed")
     else:
-        print("\n❌ Authentication failed. Check your Google Cloud setup.")
+        print("   ✅ GOOGLE_APPLICATION_CREDENTIALS not set")
     
-    print("\n" + "=" * 50) 
+    print(f"   GOOGLE_CLOUD_PROJECT: {os.environ.get('GOOGLE_CLOUD_PROJECT', 'NOT SET')}")
+    print(f"   FLASK_ENV: {os.environ.get('FLASK_ENV', 'NOT SET')}")
+    
+    # Test Google Cloud authentication
+    print("\n🔑 TESTING GOOGLE CLOUD AUTHENTICATION:")
+    try:
+        import google.auth
+        from google.auth.transport.requests import Request
+        print("   ✅ Google Cloud libraries available")
+        
+        # Try to get default credentials
+        print("   🔄 Getting default credentials...")
+        credentials, project = google.auth.default(
+            scopes=[
+                'https://www.googleapis.com/auth/cloud-platform',
+                'https://www.googleapis.com/auth/aiplatform.googleapis.com'
+            ]
+        )
+        
+        # Refresh the token
+        print("   🔄 Refreshing token...")
+        credentials.refresh(Request())
+        
+        if credentials.valid and credentials.token:
+            print("   ✅ Authentication successful!")
+            print(f"   📝 Project: {project}")
+            print(f"   🔑 Token preview: {str(credentials.token)[:20]}...")
+            return True
+        else:
+            print("   ❌ Credentials are not valid")
+            return False
+            
+    except ImportError as e:
+        print(f"   ❌ Google Cloud libraries not available: {e}")
+        return False
+    except Exception as e:
+        print(f"   ❌ Authentication failed: {e}")
+        import traceback
+        print(f"   📋 Traceback: {traceback.format_exc()}")
+        return False
+
+def test_veo_client():
+    """Test the VEO client directly"""
+    print("\n🎬 TESTING VEO CLIENT:")
+    print("=" * 50)
+    
+    try:
+        # Add the app directory to the Python path
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))
+        
+        from app.veo_client import VeoClient
+        
+        print("   ✅ VEO client imported successfully")
+        
+        # Create client instance
+        client = VeoClient()
+        print(f"   📝 Project ID: {client.project_id}")
+        print(f"   📝 Location: {client.location}")
+        print(f"   📝 Model ID: {client.model_id}")
+        
+        # Test authentication
+        print("   🔄 Testing authentication...")
+        token = client._get_auth_token()
+        
+        if token:
+            print("   ✅ VEO client authentication successful!")
+            return True
+        else:
+            print("   ❌ VEO client authentication failed!")
+            return False
+            
+    except Exception as e:
+        print(f"   ❌ Error testing VEO client: {e}")
+        import traceback
+        print(f"   📋 Traceback: {traceback.format_exc()}")
+        return False
+
+def main():
+    """Main test function"""
+    print("🧪 VEO AUTHENTICATION DIAGNOSTIC TOOL")
+    print("=" * 60)
+    
+    # Test 1: Environment
+    env_ok = test_environment()
+    
+    # Test 2: VEO Client
+    veo_ok = test_veo_client()
+    
+    # Summary
+    print("\n📊 TEST SUMMARY:")
+    print("=" * 50)
+    print(f"   Environment: {'✅ PASS' if env_ok else '❌ FAIL'}")
+    print(f"   VEO Client: {'✅ PASS' if veo_ok else '❌ FAIL'}")
+    
+    if env_ok and veo_ok:
+        print("\n🎉 All tests passed! VEO authentication should work.")
+    else:
+        print("\n⚠️ Some tests failed. Check the output above for details.")
+        
+        if not env_ok:
+            print("\n🔧 RECOMMENDATIONS:")
+            print("   • Ensure you're running on Cloud Run with proper service account")
+            print("   • Check that GOOGLE_CLOUD_PROJECT is set correctly")
+            print("   • Verify the service account has necessary permissions")
+
+if __name__ == '__main__':
+    main() 
