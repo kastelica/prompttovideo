@@ -32,7 +32,7 @@ def index():
     featured_videos = featured_videos[:9]
     
     # Generate signed URLs for thumbnails that don't have them
-    from app.tasks import generate_signed_url
+    from app.gcs_utils import generate_signed_url
     for video in featured_videos:
         if not video.thumbnail_url:
             try:
@@ -945,7 +945,7 @@ def reset_rate_limits():
 @bp.route('/update-thumbnail-urls')
 def update_thumbnail_urls():
     """Temporary endpoint to update thumbnail URLs to signed URLs"""
-    from app.tasks import generate_thumbnail_signed_url
+    from app.gcs_utils import generate_thumbnail_signed_url
     
     try:
         # Get all videos with thumbnails
