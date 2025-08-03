@@ -75,6 +75,158 @@ class VeoClient:
                 current_app.logger.warning("Google Cloud libraries not available, using mock token")
                 return "mock_token_for_development"
             
+            # Always try Application Default Credentials first (works in both Cloud Run and local)
+            current_app.logger.info("🔑 VEO: Trying Application Default Credentials")
+            token = self._get_application_default_token()
+            if token:
+                return token
+            
+            # Check if we're running in Cloud Run (production environment)
+            if os.environ.get('K_SERVICE') or os.environ.get('FLASK_ENV') == 'production':
+                current_app.logger.info("🌐 VEO: Running in Cloud Run - using service account")
+                return self._get_service_account_token()
+            
+            # For local development, try gcloud auth as fallback
+            current_app.logger.info("🔑 VEO: Local development - trying gcloud auth")
+            return self._get_gcloud_token()
+                
+        except Exception as e:
+            current_app.logger.error(f"Google Cloud authentication failed: {e}")
+            return "mock_token_for_development"
+    
+    def _get_application_default_token(self):
+        """Get token using Application Default Credentials"""
+        try:
+            import google.auth
+            from google.auth.transport.requests import Request
+            
+            current_app.logger.info("🔑 VEO: Getting token using Application Default Credentials")
+            
+            # Get default credentials with proper scopes for Veo API
+            credentials, project = google.auth.default(
+                scopes=[
+                    'https://www.googleapis.com/auth/cloud-platform',
+                    'https://www.googleapis.com/auth/aiplatform.googleapis.com'
+                ]
+            )
+            
+            # Refresh the token
+            credentials.refresh(Request())
+            
+            if credentials.valid:
+                token = credentials.token
+                current_app.logger.info("✅ VEO: Successfully obtained token using Application Default Credentials")
+                current_app.logger.info(f"🔍 VEO: Token type: {type(token)}")
+                current_app.logger.info(f"🔍 VEO: Token length: {len(token) if token else 0}")
+                current_app.logger.info(f"🔍 VEO: Token preview: {token[:20] + '...' if token else 'None'}")
+                return token
+            else:
+                current_app.logger.error("❌ VEO: Application Default Credentials not valid")
+                return None
+                
+        except Exception as e:
+            current_app.logger.error(f"❌ VEO: Application Default Credentials failed: {e}")
+            return None
+    
+    def _get_cloud_run_token(self):
+        """Get token using Application Default Credentials (for Cloud Run)"""
+        try:
+            import google.auth
+            from google.auth.transport.requests import Request
+            
+            current_app.logger.info("🔑 VEO: Getting token using Application Default Credentials")
+            
+            # Get default credentials with proper scopes for Veo API
+            credentials, project = google.auth.default(
+                scopes=[
+                    'https://www.googleapis.com/auth/cloud-platform',
+                    'https://www.googleapis.com/auth/aiplatform.googleapis.com'
+                ]
+            )
+            
+            # Refresh the token
+            credentials.refresh(Request())
+            
+            if credentials.valid:
+                token = credentials.token
+                current_app.logger.info("✅ VEO: Successfully obtained token using Application Default Credentials")
+                current_app.logger.info(f"🔍 VEO: Token type: {type(token)}")
+                current_app.logger.info(f"🔍 VEO: Token length: {len(token) if token else 0}")
+                current_app.logger.info(f"🔍 VEO: Token preview: {token[:20] + '...' if token else 'None'}")
+                return token
+            else:
+                current_app.logger.error("❌ VEO: Application Default Credentials not valid")
+                return None
+                
+        except Exception as e:
+            current_app.logger.error(f"❌ VEO: Application Default Credentials failed: {e}")
+            return None
+    
+    def _get_gcloud_token(self):
+        """Get token using gcloud auth (for local development)"""
+        try:
+            import subprocess
+            
+            current_app.logger.info("🔑 VEO: Getting OAuth 2.0 access token via gcloud")
+            
+            # First try application-default credentials
+            current_app.logger.info("🔄 VEO: Trying gcloud auth application-default print-access-token")
+            result = subprocess.run(
+                ['gcloud', 'auth', 'application-default', 'print-access-token', '--scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/aiplatform.googleapis.com'],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            
+            if result.returncode == 0:
+                token = result.stdout.strip()
+                if token:
+                    current_app.logger.info("✅ VEO: Successfully obtained OAuth 2.0 access token via gcloud application-default")
+                    current_app.logger.info(f"🔍 VEO: Token type: {type(token)}")
+                    current_app.logger.info(f"🔍 VEO: Token length: {len(token)}")
+                    current_app.logger.info(f"🔍 VEO: Token preview: {token[:20] + '...'}")
+                    return token
+                else:
+                    current_app.logger.warning("❌ VEO: gcloud application-default returned empty token")
+            else:
+                current_app.logger.warning(f"❌ VEO: gcloud application-default auth failed: {result.stderr}")
+            
+            # Fallback to regular gcloud auth
+            current_app.logger.info("🔄 VEO: Trying regular gcloud auth print-access-token")
+            result = subprocess.run(
+                ['gcloud', 'auth', 'print-access-token', '--scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/aiplatform.googleapis.com'],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            
+            if result.returncode == 0:
+                token = result.stdout.strip()
+                if token:
+                    current_app.logger.info("✅ VEO: Successfully obtained OAuth 2.0 access token via gcloud")
+                    current_app.logger.info(f"🔍 VEO: Token type: {type(token)}")
+                    current_app.logger.info(f"🔍 VEO: Token length: {len(token)}")
+                    current_app.logger.info(f"🔍 VEO: Token preview: {token[:20] + '...'}")
+                    return token
+                else:
+                    current_app.logger.error("❌ VEO: gcloud returned empty token")
+            else:
+                current_app.logger.error(f"❌ VEO: gcloud auth failed: {result.stderr}")
+                
+        except subprocess.TimeoutExpired:
+            current_app.logger.error("❌ VEO: gcloud auth timed out")
+        except FileNotFoundError:
+            current_app.logger.error("❌ VEO: gcloud command not found")
+        except Exception as e:
+            current_app.logger.error(f"❌ VEO: gcloud auth error: {e}")
+        
+        # Fallback to service account credentials if gcloud fails
+        current_app.logger.info("🔄 VEO: Falling back to service account credentials")
+        return self._get_service_account_token()
+    
+    def _get_service_account_token(self, creds_path=None):
+        """Get token using service account credentials (fallback method)"""
+        try:
             # Hardcode the credentials path for the web server
             creds_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
             if not creds_path:
@@ -86,10 +238,13 @@ class VeoClient:
                 current_app.logger.error(f"Credentials file not found: {creds_path}")
                 return "mock_token_for_development"
             
-            # Load credentials from the hardcoded path
+            # Load credentials from the hardcoded path with proper scopes
             credentials = service_account.Credentials.from_service_account_file(
                 creds_path,
-                scopes=['https://www.googleapis.com/auth/cloud-platform']
+                scopes=[
+                    'https://www.googleapis.com/auth/cloud-platform',
+                    'https://www.googleapis.com/auth/aiplatform.googleapis.com'
+                ]
             )
             
             # Get the token using Google requests
@@ -97,16 +252,74 @@ class VeoClient:
             credentials.refresh(auth_req)
             
             if credentials.valid:
+                token = credentials.token
                 current_app.logger.info(f"Loaded Google Cloud credentials from: {creds_path}")
-                return credentials.token
+                current_app.logger.info(f"🔍 VEO: Token type: {type(token)}")
+                current_app.logger.info(f"🔍 VEO: Token length: {len(token) if token else 0}")
+                current_app.logger.info(f"🔍 VEO: Token preview: {token[:20] + '...' if token else 'None'}")
+                
+                # Check if we got an access token (not an ID token)
+                if token and len(token.split('.')) == 3:
+                    # This looks like a JWT token, let's decode it to check the type
+                    import base64
+                    import json
+                    try:
+                        # Decode the JWT header
+                        header_b64 = token.split('.')[0]
+                        header_b64 += '=' * (4 - len(header_b64) % 4)  # Add padding
+                        header = json.loads(base64.b64decode(header_b64))
+                        
+                        if header.get('typ') == 'JWT':
+                            # This is likely an ID token, not an access token
+                            current_app.logger.error("❌ VEO: Got ID token instead of access token")
+                            current_app.logger.error("❌ VEO: Service account authentication returned wrong token type")
+                            
+                            # Try to get access token using a different method
+                            return self._get_access_token_from_service_account(creds_path)
+                    except Exception as e:
+                        current_app.logger.warning(f"Could not decode token header: {e}")
+                
+                return token
             else:
                 current_app.logger.error("Credentials not valid after refresh")
                 return "mock_token_for_development"
                 
         except Exception as e:
-            current_app.logger.error(f"Google Cloud authentication failed: {e}")
-            current_app.logger.error(f"DEBUG: GOOGLE_APPLICATION_CREDENTIALS environment variable not set")
+            current_app.logger.error(f"Service account authentication failed: {e}")
             return "mock_token_for_development"
+    
+    def _get_access_token_from_service_account(self, creds_path):
+        """Get access token using service account with explicit token request"""
+        try:
+            current_app.logger.info("🔄 VEO: Trying alternative access token method")
+            
+            # Load service account info
+            with open(creds_path, 'r') as f:
+                service_account_info = json.load(f)
+            
+            # Create credentials with explicit token URI
+            credentials = service_account.Credentials.from_service_account_info(
+                service_account_info,
+                scopes=[
+                    'https://www.googleapis.com/auth/cloud-platform',
+                    'https://www.googleapis.com/auth/aiplatform.googleapis.com'
+                ]
+            )
+            
+            # Force token refresh
+            auth_req = google_requests.Request()
+            credentials.refresh(auth_req)
+            
+            if credentials.valid and credentials.token:
+                current_app.logger.info("✅ VEO: Successfully obtained access token via alternative method")
+                return credentials.token
+            else:
+                current_app.logger.error("❌ VEO: Alternative method also failed")
+                return None
+                
+        except Exception as e:
+            current_app.logger.error(f"❌ VEO: Alternative access token method failed: {e}")
+            return None
     
     def generate_video(self, prompt, quality='free', duration=30):
         """Generate video using Veo API"""
