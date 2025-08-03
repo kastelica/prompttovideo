@@ -311,6 +311,38 @@ def queue_status_api():
         }
     })
 
+@bp.route('/api/v1/test-veo-auth', methods=['GET'])
+def test_veo_auth():
+    """Test endpoint to trigger VEO authentication debugging"""
+    try:
+        from app.veo_client import VeoClient
+        
+        # Create VEO client instance
+        veo_client = VeoClient()
+        
+        # Try to get auth token (this will trigger all the debugging)
+        token = veo_client._get_auth_token()
+        
+        if token:
+            return jsonify({
+                'success': True,
+                'message': 'VEO authentication successful',
+                'token_preview': f"{token[:20]}..."
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'VEO authentication failed',
+                'error': 'No token obtained'
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': 'VEO authentication test failed',
+            'error': str(e)
+        }), 500
+
 # Helper functions
 def get_queue_position(video_id):
     """Get position of video in queue"""
