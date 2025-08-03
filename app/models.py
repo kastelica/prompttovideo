@@ -58,6 +58,9 @@ class User(UserMixin, db.Model):
     
     def can_generate_video(self, quality='free'):
         """Check if user can generate a video of given quality"""
+        # Unlimited credits (-1) means user can always generate videos
+        if self.credits == -1:
+            return True
         # Calculate credit cost based on quality
         cost = 1 if quality == 'free' else 3
         return self.credits >= cost

@@ -53,8 +53,10 @@ def api_generate_video():
     if not prompt:
         return jsonify({'error': 'Prompt cannot be empty'}), 400
     
-    if quality not in ['free', 'premium']:
-        return jsonify({'error': 'Invalid quality. Must be free or premium'}), 400
+    # Validate quality
+    valid_qualities = ['free', 'premium', '360p', '1080p']
+    if quality not in valid_qualities:
+        return jsonify({'error': f'Invalid quality. Must be one of: {", ".join(valid_qualities)}'}), 400
     
     # Check if user has enough credits
     user = User.query.get(request.user_id)

@@ -27,25 +27,12 @@ def user(app):
 
 @pytest.fixture
 def auth_headers(user):
-    # Mock authentication for testing
-    # We need to mock the login_required decorator
-    return {'Authorization': 'Bearer test-token'}
+    # Create a proper JWT token for testing
+    from app.auth.utils import generate_token
+    token = generate_token(user.id)
+    return {'Authorization': f'Bearer {token}'}
 
-@pytest.fixture
-def mock_auth(monkeypatch):
-    """Mock authentication for testing"""
-    def mock_login_required(f):
-        def decorated_function(*args, **kwargs):
-            # Set a mock user_id in request
-            from flask import request
-            request.user_id = 1
-            request.current_user = MagicMock(id=1)
-            return f(*args, **kwargs)
-        return decorated_function
-    
-    # Apply the mock to all routes that need it
-    monkeypatch.setattr('app.payments.routes.login_required', mock_login_required)
-    monkeypatch.setattr('app.auth.utils.login_required', mock_login_required)
+
 
 class TestPaymentRoutes:
     def test_get_credit_packs(self, client):
@@ -63,7 +50,7 @@ class TestPaymentRoutes:
         assert data['packs']['unlimited']['credits'] == -1
 
     @patch('app.payments.routes.stripe.checkout.Session.create')
-    def test_create_checkout_session(self, mock_stripe_create, client, auth_headers, mock_auth):
+    def test_create_checkout_session(self, mock_stripe_create, client, auth_headers):
         """Test creating a Stripe checkout session"""
         # Mock Stripe response
         mock_session = MagicMock()
@@ -86,7 +73,7 @@ class TestPaymentRoutes:
         assert call_args['line_items'][0]['price_data']['unit_amount'] == 999
         assert call_args['line_items'][0]['price_data']['product_data']['name'] == 'Starter Pack'
 
-    def test_create_checkout_session_invalid_pack(self, client, auth_headers, mock_auth):
+    def test_create_checkout_session_invalid_pack(self, client, auth_headers):
         """Test creating checkout session with invalid pack"""
         response = client.post('/payments/create-checkout-session',
                              headers=auth_headers,
@@ -142,7 +129,7 @@ class TestPaymentRoutes:
         assert response.status_code == 200
         assert 'Payment was cancelled' in data['message']
 
-    def test_purchase_history(self, client, user, auth_headers, mock_auth):
+    def test_purchase_history(self, client, user, auth_headers):
         """Test getting purchase history"""
         # Create a test transaction
         transaction = CreditTransaction(

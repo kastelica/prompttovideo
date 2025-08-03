@@ -4,6 +4,8 @@ from app.auth.rate_limit import rate_limit
 from app.auth.utils import verify_token
 from app.tasks import generate_video_task
 import time
+from datetime import datetime
+from sqlalchemy import or_, and_
 
 bp = Blueprint('developer', __name__)
 
@@ -36,15 +38,17 @@ def generate_video_api():
     if not prompt:
         return jsonify({'error': 'Prompt is required'}), 400
     
-    if quality not in ['free', 'premium']:
-        return jsonify({'error': 'Quality must be free or premium'}), 400
+    # Validate quality
+    valid_qualities = ['free', 'premium', '360p', '1080p']
+    if quality not in valid_qualities:
+        return jsonify({'error': f'Invalid quality. Must be one of: {", ".join(valid_qualities)}'}), 400
     
-    # Check credits
-    cost = 1 if quality == '360p' else 3
-    if not user.can_generate_video(quality):
+    # Calculate credit cost
+    credit_cost = 1 if quality == 'free' else 3
+    if user.credits < credit_cost:
         return jsonify({
             'error': 'Insufficient credits',
-            'required': cost,
+            'required': credit_cost,
             'available': user.credits
         }), 402
     
@@ -64,8 +68,38 @@ def generate_video_api():
     
     db.session.commit()
     
-    # Queue the video generation task
-    generate_video_task(video.id)
+    # Deduct credits
+    user.credits -= credit_cost
+    user.api_calls_today += 1
+    user.last_api_call = datetime.utcnow()
+    db.session.commit()
+    
+    # Queue the video generation task using background thread
+    try:
+        import threading
+        from app import create_app
+        import os
+        
+        def run_video_generation():
+            try:
+                # Always create a new app context for background thread
+                config_name = 'testing' if os.environ.get('FLASK_ENV') == 'testing' else None
+                app = create_app(config_name)
+                with app.app_context():
+                    generate_video_task(video.id)
+            except Exception as e:
+                print(f"❌ API Background thread error: {e}")
+        
+        thread = threading.Thread(target=run_video_generation)
+        thread.daemon = True
+        thread.start()
+        
+    except Exception as e:
+        # If task execution fails, mark as failed and refund credits
+        video.status = 'failed'
+        user.credits += credit_cost
+        db.session.commit()
+        return jsonify({'error': 'Failed to start video generation'}), 500
     
     return jsonify({
         'success': True,
@@ -268,9 +302,9 @@ def get_queue_position(video_id):
     # Count videos with higher priority or same priority but queued earlier
     position = Video.query.filter(
         Video.status == 'pending',
-        db.or_(
+        or_(
             Video.priority > video.priority,
-            db.and_(Video.priority == video.priority, Video.queued_at < video.queued_at)
+            and_(Video.priority == video.priority, Video.queued_at < video.queued_at)
         )
     ).count()
     
