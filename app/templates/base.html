@@ -7,6 +7,22 @@
     {% block meta %}{% endblock %}
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dark-mode.css') }}">
+    
+    <!-- Prevent dark mode flash by applying theme immediately -->
+    <script>
+        // Check for dark mode preference immediately to prevent flash
+        (function() {
+            const isDarkMode = localStorage.getItem('darkMode') === 'true' || 
+                              (!localStorage.getItem('darkMode') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
+    
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -474,21 +490,19 @@
             const moonIcon = document.getElementById('moonIcon');
             const mobileSunIcon = document.getElementById('mobileSunIcon');
             const mobileMoonIcon = document.getElementById('mobileMoonIcon');
-            const body = document.getElementById('body');
-            
             // Check for saved dark mode preference or default to light mode
             const isDarkMode = localStorage.getItem('darkMode') === 'true' || 
                               (!localStorage.getItem('darkMode') && window.matchMedia('(prefers-color-scheme: dark)').matches);
             
             // Apply initial dark mode state
             if (isDarkMode) {
-                body.classList.add('dark');
+                document.documentElement.classList.add('dark');
                 sunIcon.classList.remove('hidden');
                 moonIcon.classList.add('hidden');
                 mobileSunIcon.classList.remove('hidden');
                 mobileMoonIcon.classList.add('hidden');
             } else {
-                body.classList.remove('dark');
+                document.documentElement.classList.remove('dark');
                 sunIcon.classList.add('hidden');
                 moonIcon.classList.remove('hidden');
                 mobileSunIcon.classList.add('hidden');
@@ -498,11 +512,11 @@
             // Desktop toggle functionality
             if (darkModeToggle) {
                 darkModeToggle.addEventListener('click', function() {
-                    const isCurrentlyDark = body.classList.contains('dark');
+                    const isCurrentlyDark = document.documentElement.classList.contains('dark');
                     
                     if (isCurrentlyDark) {
                         // Switch to light mode
-                        body.classList.remove('dark');
+                        document.documentElement.classList.remove('dark');
                         localStorage.setItem('darkMode', 'false');
                         sunIcon.classList.add('hidden');
                         moonIcon.classList.remove('hidden');
@@ -510,7 +524,7 @@
                         mobileMoonIcon.classList.remove('hidden');
                     } else {
                         // Switch to dark mode
-                        body.classList.add('dark');
+                        document.documentElement.classList.add('dark');
                         localStorage.setItem('darkMode', 'true');
                         sunIcon.classList.remove('hidden');
                         moonIcon.classList.add('hidden');
@@ -523,11 +537,11 @@
             // Mobile toggle functionality
             if (mobileDarkModeToggle) {
                 mobileDarkModeToggle.addEventListener('click', function() {
-                    const isCurrentlyDark = body.classList.contains('dark');
+                    const isCurrentlyDark = document.documentElement.classList.contains('dark');
                     
                     if (isCurrentlyDark) {
                         // Switch to light mode
-                        body.classList.remove('dark');
+                        document.documentElement.classList.remove('dark');
                         localStorage.setItem('darkMode', 'false');
                         sunIcon.classList.add('hidden');
                         moonIcon.classList.remove('hidden');
@@ -535,7 +549,7 @@
                         mobileMoonIcon.classList.remove('hidden');
                     } else {
                         // Switch to dark mode
-                        body.classList.add('dark');
+                        document.documentElement.classList.add('dark');
                         localStorage.setItem('darkMode', 'true');
                         sunIcon.classList.remove('hidden');
                         moonIcon.classList.add('hidden');

@@ -451,6 +451,23 @@
     background-color: #0f172a !important;
 }
 
+/* Custom dark background classes */
+.dark .bg-dark-900 {
+    background-color: #0f172a !important;
+}
+
+.dark .bg-dark-800 {
+    background-color: #1e293b !important;
+}
+
+.dark .bg-dark-700 {
+    background-color: #334155 !important;
+}
+
+.dark .bg-dark-600 {
+    background-color: #475569 !important;
+}
+
 .dark .bg-gray-100 {
     background-color: #1e293b !important;
 }
@@ -528,6 +545,39 @@
     color: #0f172a !important;
 }
 
+/* Custom dark text color classes */
+.dark .text-dark-100 {
+    color: #f8fafc !important;
+}
+
+.dark .text-dark-200 {
+    color: #e2e8f0 !important;
+}
+
+.dark .text-dark-300 {
+    color: #cbd5e1 !important;
+}
+
+.dark .text-dark-400 {
+    color: #94a3b8 !important;
+}
+
+.dark .text-dark-600 {
+    color: #475569 !important;
+}
+
+.dark .text-dark-700 {
+    color: #334155 !important;
+}
+
+.dark .text-dark-800 {
+    color: #1e293b !important;
+}
+
+.dark .text-dark-900 {
+    color: #0f172a !important;
+}
+
 /* Gradient backgrounds */
 .dark .bg-gradient-to-br {
     background-image: linear-gradient(to bottom right, #0f172a, #1e293b) !important;
@@ -583,6 +633,19 @@
 
 .dark .border-gray-400 {
     border-color: #94a3b8 !important;
+}
+
+/* Custom dark border color classes */
+.dark .border-dark-600 {
+    border-color: #475569 !important;
+}
+
+.dark .border-dark-700 {
+    border-color: #475569 !important;
+}
+
+.dark .border-dark-800 {
+    border-color: #1e293b !important;
 }
 
 /* Input backgrounds */
