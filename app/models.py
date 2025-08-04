@@ -24,6 +24,8 @@ class User(UserMixin, db.Model):
     referral_code = db.Column(db.String(10), unique=True)
     referred_by = db.Column(db.String(10))
     stripe_customer_id = db.Column(db.String(255))
+    subscription_id = db.Column(db.String(255))  # Stripe subscription ID
+    subscription_status = db.Column(db.String(20), default='inactive')  # active, inactive, cancelled, past_due
     # Rate limiting fields
     api_calls_today = db.Column(db.Integer, default=0, nullable=False)
     last_api_call = db.Column(db.DateTime)

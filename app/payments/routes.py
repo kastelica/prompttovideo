@@ -12,24 +12,25 @@ from datetime import datetime
 CREDIT_PACKS = {
     'starter': {
         'name': 'Starter Pack',
-        'credits': 10,
+        'credits': 5,
         'price_id': 'price_starter_pack',  # Will be set via environment
-        'price': 999,  # $9.99 in cents
-        'description': '10 credits for video generation'
+        'price': 2999,  # $29.99 in cents (matches frontend)
+        'description': '5 credits for video generation'
     },
     'pro': {
         'name': 'Pro Pack', 
-        'credits': 50,
+        'credits': 20,
         'price_id': 'price_pro_pack',
-        'price': 3999,  # $39.99 in cents
-        'description': '50 credits for video generation'
+        'price': 9999,  # $99.99 in cents (matches frontend)
+        'description': '20 credits for video generation'
     },
-    'unlimited': {
-        'name': 'Unlimited Monthly',
-        'credits': -1,  # -1 indicates unlimited
-        'price_id': 'price_unlimited_monthly',
-        'price': 1999,  # $19.99 in cents
-        'description': 'Unlimited video generation for 30 days'
+    'enterprise': {
+        'name': 'Enterprise Monthly',
+        'credits': 50,  # 50 credits per month
+        'price_id': 'price_enterprise_monthly',
+        'price': 19999,  # $199.99 in cents (matches frontend)
+        'description': '50 credits per month for video generation',
+        'subscription': True  # This is a subscription, not one-time payment
     }
 }
 
@@ -63,10 +64,13 @@ def create_checkout_session():
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
+        # Determine if this is a subscription or one-time payment
+        is_subscription = pack.get('subscription', False)
+        
         # Create Stripe checkout session
-        checkout_session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=[{
+        checkout_session_data = {
+            'payment_method_types': ['card'],
+            'line_items': [{
                 'price_data': {
                     'currency': 'usd',
                     'product_data': {
@@ -77,16 +81,27 @@ def create_checkout_session():
                 },
                 'quantity': 1,
             }],
-            mode='payment',
-            success_url=url_for('payments.success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
-            cancel_url=url_for('payments.cancel', _external=True),
-            metadata={
+            'success_url': url_for('payments.success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+            'cancel_url': url_for('payments.cancel', _external=True),
+            'metadata': {
                 'user_id': user.id,
                 'pack_id': pack_id,
                 'credits': pack['credits']
             },
-            customer_email=user.email  # Pre-fill email for better UX
-        )
+            'customer_email': user.email  # Pre-fill email for better UX
+        }
+        
+        # Set mode based on whether it's a subscription
+        if is_subscription:
+            checkout_session_data['mode'] = 'subscription'
+            # For subscriptions, we need to create a recurring price
+            checkout_session_data['line_items'][0]['price_data']['recurring'] = {
+                'interval': 'month'
+            }
+        else:
+            checkout_session_data['mode'] = 'payment'
+        
+        checkout_session = stripe.checkout.Session.create(**checkout_session_data)
         
         current_app.logger.info(f"Created checkout session {checkout_session.id} for user {user.id}, pack {pack_id}")
         
@@ -123,6 +138,7 @@ def success():
         # Retrieve the checkout session
         session = stripe.checkout.Session.retrieve(session_id)
         
+        # Handle both one-time payments and subscriptions
         if session.payment_status == 'paid':
             # Process the payment
             user_id = session.metadata.get('user_id')
@@ -131,22 +147,54 @@ def success():
             
             user = User.query.get(user_id)
             if user:
-                # Add credits to user account
-                user.add_credits(credits, 'purchase')
+                # Check if this is a subscription
+                pack = CREDIT_PACKS.get(pack_id, {})
+                is_subscription = pack.get('subscription', False)
                 
-                # Record the transaction
-                transaction = CreditTransaction(
-                    user_id=user.id,
-                    amount=credits,
-                    transaction_type='credit',
-                    source='purchase',
-                    description=f"Credit purchase: {CREDIT_PACKS[pack_id]['name']}",
-                    stripe_session_id=session_id
-                )
+                if is_subscription:
+                    # For subscriptions, we need to handle monthly credit allocation
+                    # Store subscription info in user model
+                    user.subscription_tier = 'enterprise'
+                    user.subscription_id = session.subscription if hasattr(session, 'subscription') else None
+                    user.subscription_status = 'active'
+                    
+                    # Add monthly credits
+                    user.add_credits(credits, 'subscription')
+                    
+                    # Record the transaction
+                    transaction = CreditTransaction(
+                        user_id=user.id,
+                        amount=credits,
+                        transaction_type='credit',
+                        source='subscription',
+                        description=f"Monthly subscription: {pack['name']}",
+                        stripe_session_id=session_id
+                    )
+                    
+                    # Also store the subscription ID from the session metadata if available
+                    if hasattr(session, 'subscription') and session.subscription:
+                        user.subscription_id = session.subscription
+                else:
+                    # One-time purchase
+                    user.add_credits(credits, 'purchase')
+                    
+                    # Record the transaction
+                    transaction = CreditTransaction(
+                        user_id=user.id,
+                        amount=credits,
+                        transaction_type='credit',
+                        source='purchase',
+                        description=f"Credit purchase: {pack['name']}",
+                        stripe_session_id=session_id
+                    )
+                
                 db.session.add(transaction)
                 db.session.commit()
                 
-                flash(f'Successfully purchased {credits} credits! Your new balance is {user.credits} credits.', 'success')
+                if is_subscription:
+                    flash(f'Successfully subscribed to {pack["name"]}! You now have {user.credits} credits.', 'success')
+                else:
+                    flash(f'Successfully purchased {credits} credits! Your new balance is {user.credits} credits.', 'success')
                 return redirect(url_for('main.dashboard'))
             else:
                 flash('User not found. Please contact support.', 'error')
@@ -237,8 +285,32 @@ def handle_invoice_payment_succeeded(invoice):
     try:
         # Handle subscription renewals
         subscription_id = invoice.subscription
-        # You would store subscription_id in user model for tracking
-        current_app.logger.info(f"Subscription payment succeeded: {subscription_id}")
+        
+        # Find user with this subscription
+        user = User.query.filter_by(subscription_id=subscription_id).first()
+        if user:
+            # Add monthly credits for enterprise subscription
+            if user.subscription_tier == 'enterprise':
+                monthly_credits = 50  # 50 credits per month
+                user.add_credits(monthly_credits, 'subscription')
+                
+                # Record the transaction
+                transaction = CreditTransaction(
+                    user_id=user.id,
+                    amount=monthly_credits,
+                    transaction_type='credit',
+                    source='subscription',
+                    description=f"Monthly subscription renewal: Enterprise Pack",
+                    stripe_session_id=invoice.id
+                )
+                db.session.add(transaction)
+                db.session.commit()
+                
+                current_app.logger.info(f"Subscription payment succeeded for user {user.id}: {monthly_credits} credits added")
+            else:
+                current_app.logger.info(f"Subscription payment succeeded for user {user.id} (non-enterprise tier)")
+        else:
+            current_app.logger.warning(f"Subscription payment succeeded but user not found: {subscription_id}")
         
     except Exception as e:
         current_app.logger.error(f"Error handling invoice payment: {e}")
@@ -248,7 +320,17 @@ def handle_subscription_deleted(subscription):
     try:
         # Handle subscription cancellation
         subscription_id = subscription.id
-        current_app.logger.info(f"Subscription cancelled: {subscription_id}")
+        
+        # Find user with this subscription
+        user = User.query.filter_by(subscription_id=subscription_id).first()
+        if user:
+            user.subscription_status = 'cancelled'
+            user.subscription_tier = 'free'  # Revert to free tier
+            db.session.commit()
+            
+            current_app.logger.info(f"Subscription cancelled for user {user.id}")
+        else:
+            current_app.logger.warning(f"Subscription cancelled but user not found: {subscription_id}")
         
     except Exception as e:
         current_app.logger.error(f"Error handling subscription deletion: {e}")
