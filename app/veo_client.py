@@ -185,20 +185,17 @@ class VeoClient:
         """Generate video using Veo API."""
         if quality == 'premium':
             self.model_id = 'veo-3.0-generate-001'
-            max_duration = 60
+            max_duration = 8  # Currently limited to 8 seconds for both tiers
             has_audio = True
         else:
             self.model_id = 'veo-2.0-generate-001'
             max_duration = 8
             has_audio = False
 
-        # Ensure duration is within limits for the quality tier
-        if quality == 'free' and duration > 8:
-            logger.warning(f"⚠️ VEO: Requested duration {duration}s exceeds free tier limit (8s). Using 8s.")
+        # Currently both tiers are limited to 8 seconds
+        if duration > 8:
+            logger.warning(f"⚠️ VEO: Requested duration {duration}s exceeds current limit (8s). Using 8s.")
             duration = 8
-        elif quality == 'premium' and duration > 60:
-            logger.warning(f"⚠️ VEO: Requested duration {duration}s exceeds premium tier limit (60s). Using 60s.")
-            duration = 60
 
         logger.warning("💰 VEO: Real Veo API call will be made. This may incur costs.")
         logger.info(f"🎬 VEO: Generating {duration}s video with {quality} quality using {self.model_id}")
