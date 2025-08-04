@@ -626,10 +626,16 @@ def api_search():
         current_app.logger.info(f"Found {len(all_videos)} videos")
         
         for video in all_videos:
+            # Ensure video has a proper slug
+            video.ensure_slug()
+            
             # Get video tags
             video_tags = db.session.query(Tag.name).join(VideoTag).filter(
                 VideoTag.video_id == video.id
             ).limit(5).all()
+        
+        # Commit any slug changes
+        db.session.commit()
             
             # Get user profile safely
             user_profile = get_user_profile(video.user)

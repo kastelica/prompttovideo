@@ -244,9 +244,14 @@ function displayVideoResults(videos) {
     document.getElementById('videosSection').classList.remove('hidden');
     document.getElementById('videoCount').textContent = `(${videos.length})`;
     
-    const html = videos.map(video => `
+    const html = videos.map(video => {
+        // Ensure we have a valid slug for the URL
+        const slug = video.slug && !video.slug.startsWith('temp-') ? video.slug : 'video';
+        const videoUrl = `/watch/${video.id}-${slug}`;
+        
+        return `
         <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer"
-             onclick="window.location.href='/watch/${video.id}-${video.slug || 'video'}'">
+             onclick="window.location.href='${videoUrl}'">
             <div class="relative aspect-video bg-gray-200">
                 ${video.thumbnail_url ? 
                     `<img src="${video.thumbnail_url}" alt="${video.title}" class="w-full h-full object-cover" style="display: block !important; visibility: visible !important; opacity: 1 !important; max-width: 100%; height: auto;">` :
@@ -281,7 +286,8 @@ function displayVideoResults(videos) {
                 ` : ''}
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
     
     document.getElementById('videoResults').innerHTML = html;
 }
