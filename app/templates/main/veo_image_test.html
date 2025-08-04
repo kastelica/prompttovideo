@@ -259,11 +259,19 @@ document.addEventListener('DOMContentLoaded', function() {
             payload.image = base64Image;
             payload.mime_type = file.type;
 
+            // Get auth token
+            const authToken = localStorage.getItem('auth_token');
+            if (!authToken) {
+                displayError('Authentication required. Please log in.');
+                return;
+            }
+
             // Send request
             const response = await fetch('/api/veo/image-to-video', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
                 },
                 body: JSON.stringify(payload)
             });
@@ -383,7 +391,17 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const poll = async () => {
             try {
-                const response = await fetch(`/api/veo/status/${operationName}`);
+                const authToken = localStorage.getItem('auth_token');
+                if (!authToken) {
+                    displayError('Authentication required. Please log in.');
+                    return;
+                }
+
+                const response = await fetch(`/api/veo/status/${operationName}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
                 const result = await response.json();
                 
                 if (response.ok) {
