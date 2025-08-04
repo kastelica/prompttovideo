@@ -1,0 +1,452 @@
+{% extends "base.html" %}
+
+{% block title %}VEO Image-to-Video Test{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">VEO Image-to-Video Test</h1>
+            <p class="text-lg text-gray-600">Test Google's Veo API for image-to-video generation</p>
+        </div>
+
+        <!-- Test Form -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold mb-6">Generate Video from Image</h2>
+            
+            <form id="imageToVideoForm" class="space-y-6">
+                <!-- Image Upload -->
+                <div>
+                    <label for="imageFile" class="block text-sm font-medium text-gray-700 mb-2">
+                        Upload Image (JPEG/PNG, 720p+ recommended)
+                    </label>
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-gray-400 transition-colors">
+                        <div class="space-y-1 text-center">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div class="flex text-sm text-gray-600">
+                                <label for="imageFile" class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                                    <span>Upload a file</span>
+                                    <input id="imageFile" name="imageFile" type="file" class="sr-only" accept="image/jpeg,image/png" required>
+                                </label>
+                                <p class="pl-1">or drag and drop</p>
+                            </div>
+                            <p class="text-xs text-gray-500">PNG, JPG up to 10MB</p>
+                        </div>
+                    </div>
+                    <div id="imagePreview" class="mt-4 hidden">
+                        <img id="previewImg" class="max-w-xs rounded-lg shadow-md" alt="Preview">
+                    </div>
+                </div>
+
+                <!-- Text Prompt -->
+                <div>
+                    <label for="textPrompt" class="block text-sm font-medium text-gray-700 mb-2">
+                        Text Prompt
+                    </label>
+                    <textarea 
+                        id="textPrompt" 
+                        name="textPrompt" 
+                        rows="3" 
+                        class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                        placeholder="Describe what you want to happen in the video based on the image..."
+                        required
+                    ></textarea>
+                </div>
+
+                <!-- Model Selection -->
+                <div>
+                    <label for="modelId" class="block text-sm font-medium text-gray-700 mb-2">
+                        Model
+                    </label>
+                    <select id="modelId" name="modelId" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                        <option value="veo-2.0-generate-001">Veo 2.0 (GA)</option>
+                        <option value="veo-3.0-generate-preview">Veo 3.0 (Preview)</option>
+                    </select>
+                </div>
+
+                <!-- Duration -->
+                <div>
+                    <label for="duration" class="block text-sm font-medium text-gray-700 mb-2">
+                        Duration (seconds)
+                    </label>
+                    <select id="duration" name="duration" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                        <option value="5">5 seconds</option>
+                        <option value="6">6 seconds</option>
+                        <option value="7">7 seconds</option>
+                        <option value="8" selected>8 seconds</option>
+                    </select>
+                </div>
+
+                <!-- Sample Count -->
+                <div>
+                    <label for="sampleCount" class="block text-sm font-medium text-gray-700 mb-2">
+                        Number of Videos
+                    </label>
+                    <select id="sampleCount" name="sampleCount" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                        <option value="1" selected>1 video</option>
+                        <option value="2">2 videos</option>
+                        <option value="3">3 videos</option>
+                        <option value="4">4 videos</option>
+                    </select>
+                </div>
+
+                <!-- Advanced Options -->
+                <div class="border-t pt-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Advanced Options</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="aspectRatio" class="block text-sm font-medium text-gray-700 mb-2">
+                                Aspect Ratio
+                            </label>
+                            <select id="aspectRatio" name="aspectRatio" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                                <option value="16:9" selected>16:9 (Landscape)</option>
+                                <option value="9:16">9:16 (Portrait)</option>
+                                <option value="1:1">1:1 (Square)</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="resolution" class="block text-sm font-medium text-gray-700 mb-2">
+                                Resolution (Veo 3.0 only)
+                            </label>
+                            <select id="resolution" name="resolution" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                                <option value="720p">720p</option>
+                                <option value="1080p" selected>1080p</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <label for="negativePrompt" class="block text-sm font-medium text-gray-700 mb-2">
+                            Negative Prompt (optional)
+                        </label>
+                        <textarea 
+                            id="negativePrompt" 
+                            name="negativePrompt" 
+                            rows="2" 
+                            class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                            placeholder="What you don't want to see in the video..."
+                        ></textarea>
+                    </div>
+
+                    <div class="mt-4 space-y-3">
+                        <div class="flex items-center">
+                            <input id="enhancePrompt" name="enhancePrompt" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <label for="enhancePrompt" class="ml-2 block text-sm text-gray-900">
+                                Enhance prompt automatically
+                            </label>
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <input id="generateAudio" name="generateAudio" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                            <label for="generateAudio" class="ml-2 block text-sm text-gray-900">
+                                Generate audio
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-6">
+                    <button 
+                        type="submit" 
+                        id="submitBtn"
+                        class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <span id="submitText">Generate Video</span>
+                        <svg id="loadingSpinner" class="hidden ml-2 animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="bg-white rounded-lg shadow-lg p-6 hidden">
+            <h2 class="text-2xl font-semibold mb-6">Generation Results</h2>
+            
+            <div id="statusMessage" class="mb-6">
+                <!-- Status messages will be inserted here -->
+            </div>
+            
+            <div id="videoResults" class="space-y-4">
+                <!-- Video results will be inserted here -->
+            </div>
+        </div>
+
+        <!-- API Info -->
+        <div class="bg-gray-50 rounded-lg p-6 mt-8">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">API Information</h3>
+            <div class="text-sm text-gray-600 space-y-2">
+                <p><strong>Endpoint:</strong> <code class="bg-gray-200 px-2 py-1 rounded">POST /api/veo/image-to-video</code></p>
+                <p><strong>Supported Models:</strong> veo-2.0-generate-001 (GA), veo-3.0-generate-preview (Preview)</p>
+                <p><strong>Image Requirements:</strong> JPEG/PNG, 720p+ recommended, 16:9 or 9:16 aspect ratio</p>
+                <p><strong>Duration:</strong> 5-8 seconds</p>
+                <p><strong>Sample Count:</strong> 1-4 videos</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('imageToVideoForm');
+    const imageFile = document.getElementById('imageFile');
+    const imagePreview = document.getElementById('imagePreview');
+    const previewImg = document.getElementById('previewImg');
+    const submitBtn = document.getElementById('submitBtn');
+    const submitText = document.getElementById('submitText');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const resultsSection = document.getElementById('resultsSection');
+    const statusMessage = document.getElementById('statusMessage');
+    const videoResults = document.getElementById('videoResults');
+
+    // Image preview
+    imageFile.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                imagePreview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        } else {
+            imagePreview.classList.add('hidden');
+        }
+    });
+
+    // Form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const file = imageFile.files[0];
+        
+        if (!file) {
+            alert('Please select an image file');
+            return;
+        }
+
+        // Show loading state
+        submitBtn.disabled = true;
+        submitText.textContent = 'Generating...';
+        loadingSpinner.classList.remove('hidden');
+        resultsSection.classList.add('hidden');
+
+        try {
+            // Create the request payload
+            const payload = {
+                text_prompt: formData.get('textPrompt'),
+                model_id: formData.get('modelId'),
+                duration: parseInt(formData.get('duration')),
+                sample_count: parseInt(formData.get('sampleCount')),
+                aspect_ratio: formData.get('aspectRatio'),
+                resolution: formData.get('resolution'),
+                negative_prompt: formData.get('negativePrompt') || null,
+                enhance_prompt: formData.get('enhancePrompt') === 'on',
+                generate_audio: formData.get('generateAudio') === 'on'
+            };
+
+            // Convert image to base64
+            const base64Image = await fileToBase64(file);
+            payload.image = base64Image;
+            payload.mime_type = file.type;
+
+            // Send request
+            const response = await fetch('/api/veo/image-to-video', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                displayResults(result);
+            } else {
+                displayError(result.error || 'Failed to generate video');
+            }
+
+        } catch (error) {
+            console.error('Error:', error);
+            displayError('An error occurred while generating the video');
+        } finally {
+            // Reset loading state
+            submitBtn.disabled = false;
+            submitText.textContent = 'Generate Video';
+            loadingSpinner.classList.add('hidden');
+        }
+    });
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+                const base64 = reader.result.split(',')[1];
+                resolve(base64);
+            };
+            reader.onerror = error => reject(error);
+        });
+    }
+
+    function displayResults(result) {
+        resultsSection.classList.remove('hidden');
+        
+        if (result.operation_name) {
+            statusMessage.innerHTML = `
+                <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-blue-800">Video Generation Started</h3>
+                            <div class="mt-2 text-sm text-blue-700">
+                                <p>Operation: <code class="bg-blue-100 px-1 rounded">${result.operation_name}</code></p>
+                                <p>Status: <span class="font-medium">${result.status || 'Processing'}</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Start polling for status
+            pollVideoStatus(result.operation_name);
+        } else if (result.videos) {
+            displayVideos(result.videos);
+        }
+    }
+
+    function displayError(message) {
+        resultsSection.classList.remove('hidden');
+        statusMessage.innerHTML = `
+            <div class="bg-red-50 border border-red-200 rounded-md p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-red-800">Error</h3>
+                        <div class="mt-2 text-sm text-red-700">
+                            <p>${message}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function displayVideos(videos) {
+        videoResults.innerHTML = '';
+        
+        videos.forEach((video, index) => {
+            const videoElement = document.createElement('div');
+            videoElement.className = 'border border-gray-200 rounded-lg p-4';
+            videoElement.innerHTML = `
+                <h4 class="font-medium text-gray-900 mb-2">Video ${index + 1}</h4>
+                <video controls class="w-full rounded-lg" style="max-height: 400px;">
+                    <source src="${video.url}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <div class="mt-2 flex space-x-2">
+                    <a href="${video.url}" download="veo_video_${index + 1}.mp4" 
+                       class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Download
+                    </a>
+                    <button onclick="copyToClipboard('${video.url}')" 
+                            class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Copy URL
+                    </button>
+                </div>
+            `;
+            videoResults.appendChild(videoElement);
+        });
+    }
+
+    async function pollVideoStatus(operationName) {
+        const maxAttempts = 60; // 5 minutes with 5-second intervals
+        let attempts = 0;
+        
+        const poll = async () => {
+            try {
+                const response = await fetch(`/api/veo/status/${operationName}`);
+                const result = await response.json();
+                
+                if (response.ok) {
+                    if (result.done) {
+                        if (result.videos) {
+                            displayVideos(result.videos);
+                        } else {
+                            displayError('Video generation completed but no videos were returned');
+                        }
+                        return;
+                    } else {
+                        // Update status message
+                        statusMessage.innerHTML = `
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-5 w-5 text-yellow-400 animate-spin" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3">
+                                        <h3 class="text-sm font-medium text-yellow-800">Processing Video</h3>
+                                        <div class="mt-2 text-sm text-yellow-700">
+                                            <p>Status: <span class="font-medium">${result.status || 'Processing'}</span></p>
+                                            <p>Progress: ${attempts}/${maxAttempts} attempts</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        attempts++;
+                        if (attempts < maxAttempts) {
+                            setTimeout(poll, 5000); // Poll every 5 seconds
+                        } else {
+                            displayError('Video generation timed out. Please check the operation status manually.');
+                        }
+                    }
+                } else {
+                    displayError(result.error || 'Failed to check video status');
+                }
+            } catch (error) {
+                console.error('Error polling status:', error);
+                displayError('Failed to check video status');
+            }
+        };
+        
+        poll();
+    }
+});
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        // Show a brief success message
+        const button = event.target;
+        const originalText = button.textContent;
+        button.textContent = 'Copied!';
+        button.classList.add('bg-green-50', 'text-green-700', 'border-green-300');
+        setTimeout(() => {
+            button.textContent = originalText;
+            button.classList.remove('bg-green-50', 'text-green-700', 'border-green-300');
+        }, 2000);
+    });
+}
+</script>
+{% endblock %} 

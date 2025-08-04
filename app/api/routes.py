@@ -1454,4 +1454,131 @@ def api_get_current_user():
         
     except Exception as e:
         current_app.logger.error(f"Error in api_get_current_user: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+# VEO Image-to-Video API Endpoints
+@bp.route('/veo/image-to-video', methods=['POST'])
+@login_required
+def api_veo_image_to_video():
+    """API endpoint for VEO image-to-video generation"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        # Validate required fields
+        required_fields = ['text_prompt', 'image', 'mime_type']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        # Validate image data
+        if not data['image'] or not data['mime_type']:
+            return jsonify({'error': 'Invalid image data'}), 400
+        
+        # Validate mime type
+        valid_mime_types = ['image/jpeg', 'image/png']
+        if data['mime_type'] not in valid_mime_types:
+            return jsonify({'error': f'Invalid mime type. Must be one of: {", ".join(valid_mime_types)}'}), 400
+        
+        # Get parameters with defaults
+        model_id = data.get('model_id', 'veo-2.0-generate-001')
+        duration = data.get('duration', 8)
+        sample_count = data.get('sample_count', 1)
+        aspect_ratio = data.get('aspect_ratio', '16:9')
+        resolution = data.get('resolution', '1080p')
+        negative_prompt = data.get('negative_prompt')
+        enhance_prompt = data.get('enhance_prompt', False)
+        generate_audio = data.get('generate_audio', False)
+        
+        # Validate parameters
+        if model_id not in ['veo-2.0-generate-001', 'veo-3.0-generate-preview']:
+            return jsonify({'error': 'Invalid model ID'}), 400
+        
+        if duration not in [5, 6, 7, 8]:
+            return jsonify({'error': 'Duration must be 5, 6, 7, or 8 seconds'}), 400
+        
+        if sample_count not in [1, 2, 3, 4]:
+            return jsonify({'error': 'Sample count must be 1, 2, 3, or 4'}), 400
+        
+        if aspect_ratio not in ['16:9', '9:16', '1:1']:
+            return jsonify({'error': 'Invalid aspect ratio'}), 400
+        
+        # Import VEO client
+        from app.veo_client import VeoClient
+        
+        # Create VEO client
+        veo_client = VeoClient()
+        veo_client.model_id = model_id
+        
+        # Prepare the request payload for VEO API
+        instances = [{
+            'prompt': data['text_prompt'],
+            'image': {
+                'bytesBase64Encoded': data['image'],
+                'mimeType': data['mime_type']
+            }
+        }]
+        
+        parameters = {
+            'sampleCount': sample_count,
+            'durationSeconds': duration,
+            'aspectRatio': aspect_ratio,
+            'enhancePrompt': enhance_prompt,
+            'generateAudio': generate_audio
+        }
+        
+        # Add optional parameters
+        if negative_prompt:
+            parameters['negativePrompt'] = negative_prompt
+        
+        # Add resolution for Veo 3.0
+        if model_id == 'veo-3.0-generate-preview':
+            parameters['resolution'] = resolution
+        
+        # Call VEO API
+        current_app.logger.info(f"🎬 Starting VEO image-to-video generation for user {request.user_id}")
+        current_app.logger.info(f"📝 Prompt: {data['text_prompt']}")
+        current_app.logger.info(f"🤖 Model: {model_id}")
+        current_app.logger.info(f"⏱️ Duration: {duration}s")
+        current_app.logger.info(f"🎯 Sample count: {sample_count}")
+        
+        operation_name = veo_client.generate_image_to_video(instances, parameters)
+        
+        if operation_name:
+            current_app.logger.info(f"✅ VEO image-to-video generation started: {operation_name}")
+            return jsonify({
+                'success': True,
+                'operation_name': operation_name,
+                'status': 'processing',
+                'estimated_time': '2-5 minutes'
+            })
+        else:
+            current_app.logger.error("❌ VEO image-to-video generation failed")
+            return jsonify({'error': 'Failed to start video generation'}), 500
+            
+    except Exception as e:
+        current_app.logger.error(f"Error in VEO image-to-video generation: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@bp.route('/veo/status/<operation_name>', methods=['GET'])
+@login_required
+def api_veo_status(operation_name):
+    """Check the status of a VEO operation"""
+    try:
+        from app.veo_client import VeoClient
+        
+        veo_client = VeoClient()
+        result = veo_client.check_image_to_video_status(operation_name)
+        
+        if result:
+            return jsonify(result)
+        else:
+            return jsonify({'error': 'Operation not found or failed'}), 404
+            
+    except Exception as e:
+        current_app.logger.error(f"Error checking VEO status: {str(e)}", exc_info=True)
         return jsonify({'error': 'Internal server error'}), 500 

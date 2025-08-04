@@ -332,6 +332,180 @@ class VeoClient:
             logger.error(f"❌ VEO: Error checking video status: {e}")
             return {'success': False, 'error': str(e)}
 
+    def generate_image_to_video(self, instances, parameters):
+        """Generate video from image using Veo API."""
+        logger.warning("💰 VEO: Real Veo image-to-video API call will be made. This may incur costs.")
+        
+        token = self._get_auth_token()
+        if not token:
+            error_msg = "Failed to get a valid authentication token."
+            logger.error(f"❌ VEO: {error_msg}")
+            return None
+        
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/json'
+        }
+        
+        request_data = {
+            "instances": instances,
+            "parameters": parameters
+        }
+        
+        # Add storage URI if not provided
+        if 'storageUri' not in parameters:
+            request_data["parameters"]["storageUri"] = f"gs://{get_gcs_bucket_name()}/videos/"
+
+        url = f"https://{self.location}-aiplatform.googleapis.com/v1/projects/{self.project_id}/locations/{self.location}/publishers/google/models/{self.model_id}:predictLongRunning"
+            
+        try:
+            logger.info(f"🎬 VEO: Sending image-to-video request to: {url}")
+            logger.info(f"📦 VEO: Request data: {request_data}")
+            
+            response = requests.post(url, headers=headers, json=request_data, timeout=30)
+            
+            if response.status_code == 200:
+                result = response.json()
+                operation_name = result.get('name')
+                if operation_name:
+                    logger.info(f"✅ VEO: Image-to-video generation started: {operation_name}")
+                    return operation_name
+                else:
+                    logger.error(f"❌ VEO: No operation name in response: {result}")
+                    return None
+            else:
+                error_msg = f"API request failed: {response.status_code} - {response.text}"
+                logger.error(f"❌ VEO: {error_msg}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"❌ VEO: Exception in generate_image_to_video: {e}")
+            return None
+
+    def check_image_to_video_status(self, operation_name):
+        """Check the status of an image-to-video generation operation."""
+        token = self._get_auth_token()
+        if not token:
+            error_msg = "Failed to get a valid authentication token for status check."
+            logger.error(f"❌ VEO: {error_msg}")
+            return {'success': False, 'error': error_msg}
+
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Content-Type': 'application/json'
+        }
+        
+        fetch_url = f"https://{self.location}-aiplatform.googleapis.com/v1/projects/{self.project_id}/locations/{self.location}/publishers/google/models/{self.model_id}:fetchPredictOperation"
+        request_data = {"operationName": operation_name}
+
+        try:
+            response = requests.post(fetch_url, headers=headers, json=request_data, timeout=30)
+            
+            if response.status_code == 200:
+                result = response.json()
+                logger.info(f"📡 VEO: Image-to-video status check response: {result}")
+                
+                if result.get('done', False):
+                    if 'error' in result:
+                        error_msg = result['error'].get('message', 'Unknown error')
+                        logger.error(f"❌ VEO: Image-to-video operation failed: {error_msg}")
+                        return {'success': False, 'status': 'failed', 'error': error_msg}
+                    
+                    if 'response' in result:
+                        response_data = result['response']
+                        
+                        # Check for content policy violations
+                        if 'raiMediaFilteredCount' in response_data and response_data['raiMediaFilteredCount'] > 0:
+                            filtered_reasons = response_data.get('raiMediaFilteredReasons', [])
+                            reason_text = filtered_reasons[0] if filtered_reasons else "Content policy violation"
+                            logger.warning(f"🚫 VEO: Content policy violation detected: {reason_text}")
+                            return {
+                                'success': False, 
+                                'status': 'content_violation', 
+                                'error': 'Content policy violation',
+                                'details': reason_text,
+                                'filtered_count': response_data['raiMediaFilteredCount']
+                            }
+                        
+                        # Handle video results
+                        if 'videos' in response_data and response_data['videos']:
+                            videos = []
+                            for i, video_data in enumerate(response_data['videos']):
+                                video_url = video_data.get('gcsUri')
+                                if video_url:
+                                    # Convert GCS URL to signed URL for direct access
+                                    try:
+                                        from app.gcs_utils import get_signed_url
+                                        signed_url = get_signed_url(video_url, expiration=3600)  # 1 hour
+                                        videos.append({
+                                            'index': i,
+                                            'url': signed_url,
+                                            'gcs_uri': video_url
+                                        })
+                                    except Exception as url_error:
+                                        logger.warning(f"⚠️ VEO: Could not generate signed URL for {video_url}: {url_error}")
+                                        videos.append({
+                                            'index': i,
+                                            'url': video_url,
+                                            'gcs_uri': video_url
+                                        })
+                            
+                            if videos:
+                                return {
+                                    'success': True, 
+                                    'status': 'completed', 
+                                    'done': True,
+                                    'videos': videos
+                                }
+                    
+                    # Fallback if structure is unexpected
+                    logger.warning("Image-to-video operation done but no video URLs found in expected path. Trying fallback.")
+                    operation_id = operation_name.split('/')[-1]
+                    
+                    # Try the standard Veo API folder structure
+                    videos = []
+                    for i in range(4):  # Try up to 4 videos
+                        expected_gcs_url = f"gs://{get_gcs_bucket_name()}/videos/{operation_id}/sample_{i}.mp4"
+                        
+                        if check_gcs_file_exists(expected_gcs_url):
+                            try:
+                                from app.gcs_utils import get_signed_url
+                                signed_url = get_signed_url(expected_gcs_url, expiration=3600)
+                                videos.append({
+                                    'index': i,
+                                    'url': signed_url,
+                                    'gcs_uri': expected_gcs_url
+                                })
+                            except Exception as url_error:
+                                logger.warning(f"⚠️ VEO: Could not generate signed URL for {expected_gcs_url}: {url_error}")
+                                videos.append({
+                                    'index': i,
+                                    'url': expected_gcs_url,
+                                    'gcs_uri': expected_gcs_url
+                                })
+                    
+                    if videos:
+                        logger.info(f"✅ Found {len(videos)} video files in GCS via fallback")
+                        return {
+                            'success': True, 
+                            'status': 'completed', 
+                            'done': True,
+                            'videos': videos
+                        }
+
+                    logger.error("❌ VEO: Image-to-video operation complete but no video URLs found.")
+                    return {'success': False, 'status': 'failed', 'error': 'No video data in completed operation.'}
+                else:
+                    return {'success': True, 'status': 'processing', 'done': False}
+            else:
+                error_msg = f"Status check failed: {response.status_code} - {response.text}"
+                logger.error(f"❌ VEO: {error_msg}")
+                return {'success': False, 'error': error_msg}
+                
+        except Exception as e:
+            logger.error(f"❌ VEO: Error checking image-to-video status: {e}")
+            return {'success': False, 'error': str(e)}
+
 def get_gcs_bucket_name():
     """Helper to get GCS bucket name, avoiding circular import with gcs_utils."""
     return os.environ.get('GCS_BUCKET_NAME', 'prompt-veo-videos')

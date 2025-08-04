@@ -1065,4 +1065,10 @@ def my_videos():
     # Token is valid, redirect to profile with videos tab
     return redirect(url_for('main.profile') + '?tab=videos')
 
+@bp.route('/veo-image-test')
+@login_required
+def veo_image_test():
+    """VEO Image-to-Video test page"""
+    return render_template('main/veo_image_test.html')
+
  
