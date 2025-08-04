@@ -359,6 +359,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function displayVideos(videos) {
+        console.log('Displaying videos:', videos); // Debug logging
         videoResults.innerHTML = '';
         
         videos.forEach((video, index) => {
@@ -404,8 +405,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 const result = await response.json();
                 
+                console.log('VEO Status Response:', result); // Debug logging
+                
                 if (response.ok) {
                     if (result.done) {
+                        console.log('VEO operation done, videos:', result.videos); // Debug logging
                         if (result.videos) {
                             displayVideos(result.videos);
                         } else {
