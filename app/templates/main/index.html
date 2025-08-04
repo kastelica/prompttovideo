@@ -61,18 +61,32 @@
                 <div class="absolute -top-2 left-2 bg-white dark:bg-dark-700 px-1 text-xs text-primary opacity-0 group-focus-within:opacity-100 transition-opacity duration-300">
                     ✨ Let your creativity flow
                 </div>
-                <button 
-                    type="button" 
-                    id="suggestBtn"
-                    class="absolute top-2 right-2 bg-blue-500 text-white px-2 md:px-3 py-1 rounded-md text-xs md:text-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors z-10"
-                    title="Get AI-generated prompt suggestions"
-                >
-                    <svg class="w-3 h-3 md:w-4 md:h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                    </svg>
-                    <span class="hidden sm:inline">AI Suggest</span>
-                    <span class="sm:hidden">AI</span>
-                </button>
+                <div class="absolute top-2 right-2 flex space-x-2">
+                    <button 
+                        type="button" 
+                        id="improvePromptBtn"
+                        class="bg-blue-500 text-white px-2 md:px-3 py-1 rounded-md text-xs md:text-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors z-10"
+                        title="Improve your prompt based on what you've typed"
+                    >
+                        <svg class="w-3 h-3 md:w-4 md:h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        <span class="hidden sm:inline">Improve</span>
+                        <span class="sm:hidden">↑</span>
+                    </button>
+                    <button 
+                        type="button" 
+                        id="randomPromptBtn"
+                        class="bg-purple-500 text-white px-2 md:px-3 py-1 rounded-md text-xs md:text-sm hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors z-10"
+                        title="Get completely random AI-generated prompt ideas"
+                    >
+                        <svg class="w-3 h-3 md:w-4 md:h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15"></path>
+                        </svg>
+                        <span class="hidden sm:inline">Random</span>
+                        <span class="sm:hidden">🎲</span>
+                    </button>
+                </div>
             </div>
             <div id="suggestionStatus" class="hidden mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md text-sm">
                 <div class="flex items-center">
@@ -189,7 +203,7 @@
                         <!-- Chat icon overlay -->
                         <div class="absolute bottom-2 right-2">
                             <button 
-                                onclick="openVideoChat({{ video.id }}, event)"
+                                onclick="openVideoChat('{{ video.id }}', event)"
                                 class="bg-blue-500 bg-opacity-90 hover:bg-blue-600 text-white rounded-full p-2 transition-all duration-200 hover:scale-110 z-10"
                                 title="Chat about this video"
                             >
@@ -402,7 +416,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const generateBtn = document.getElementById('generateBtn');
     const generationStatus = document.getElementById('generationStatus');
     const statusText = document.getElementById('statusText');
-    const suggestBtn = document.getElementById('suggestBtn');
+    const improvePromptBtn = document.getElementById('improvePromptBtn');
+    const randomPromptBtn = document.getElementById('randomPromptBtn');
     const suggestionStatus = document.getElementById('suggestionStatus');
     const suggestions = document.getElementById('suggestions');
     
@@ -513,8 +528,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // AI Suggestion functionality
-    suggestBtn.addEventListener('click', async function() {
-        console.log('🤖 ===== AI SUGGEST: Button Clicked =====');
+    improvePromptBtn.addEventListener('click', async function() {
+        console.log('🤖 ===== AI SUGGEST: Improve Prompt Button Clicked =====');
         
         // Get auth token again to ensure it's available
         const currentAuthToken = localStorage.getItem('auth_token');
@@ -522,11 +537,88 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('🔑 AI SUGGEST: Current auth token length:', currentAuthToken ? currentAuthToken.length : 0);
         
         // Show loading state
-        suggestBtn.disabled = true;
-        suggestBtn.innerHTML = `
+        improvePromptBtn.disabled = true;
+        improvePromptBtn.innerHTML = `
             <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-white inline mr-1"></div>
-            Generating...
+            Improving...
         `;
+        randomPromptBtn.disabled = true; // Disable random ideas button
+        suggestionStatus.classList.remove('hidden');
+        suggestions.classList.add('hidden');
+        
+                 // Get the current prompt value
+         const currentPrompt = document.getElementById('prompt').value.trim();
+         
+         if (!currentPrompt) {
+             alert('Please type something in the prompt field first to improve it.');
+             improvePromptBtn.disabled = false;
+             randomPromptBtn.disabled = false;
+             suggestionStatus.classList.add('hidden');
+             return;
+         }
+         
+         console.log('📤 AI SUGGEST: Sending request to /api/ai-suggest with prompt:', currentPrompt);
+         
+         try {
+             const response = await fetch('/api/ai-suggest', {
+                 method: 'POST',
+                 headers: {
+                     'Content-Type': 'application/json',
+                     'Authorization': `Bearer ${currentAuthToken}`
+                 },
+                 body: JSON.stringify({ prompt: currentPrompt })
+             });
+            
+            console.log('📡 AI SUGGEST: Response received');
+            console.log('📡 AI SUGGEST: Response status:', response.status);
+            
+            const data = await response.json();
+            console.log('📡 AI SUGGEST: Response data:', data);
+            
+            if (response.ok && data.suggestions) {
+                console.log('✅ AI SUGGEST: Success! Found suggestions:', data.suggestions.length);
+                console.log('✅ AI SUGGEST: Suggestions:', data.suggestions);
+                displaySuggestions(data.suggestions, 'improve', currentPrompt);
+            } else {
+                console.log('❌ AI SUGGEST: Response not ok or no suggestions');
+                console.log('❌ AI SUGGEST: Response ok:', response.ok);
+                console.log('❌ AI SUGGEST: Has suggestions:', !!data.suggestions);
+                console.log('❌ AI SUGGEST: Error in data:', data.error);
+                throw new Error(data.error || 'Failed to get suggestions');
+            }
+        } catch (error) {
+            console.error('❌ AI SUGGEST: Error details:', error);
+            console.error('❌ AI SUGGEST: Error name:', error.name);
+            console.error('❌ AI SUGGEST: Error message:', error.message);
+            console.error('❌ AI SUGGEST: Error stack:', error.stack);
+            alert('Failed to get AI suggestions. Please try again. Error: ' + error.message);
+        } finally {
+            console.log('🔄 AI SUGGEST: Resetting button state');
+            // Reset button state
+            improvePromptBtn.disabled = false;
+            improvePromptBtn.innerHTML = `
+                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                Improve
+            `;
+            randomPromptBtn.disabled = false; // Re-enable random ideas button
+            suggestionStatus.classList.add('hidden');
+            console.log('🤖 ===== AI SUGGEST: Complete =====');
+        }
+    });
+
+    randomPromptBtn.addEventListener('click', async function() {
+        console.log('🤖 ===== AI SUGGEST: Random Ideas Button Clicked =====');
+        
+        // Get auth token again to ensure it's available
+        const currentAuthToken = localStorage.getItem('auth_token');
+        console.log('🔑 AI SUGGEST: Current auth token available:', currentAuthToken ? 'YES' : 'NO');
+        console.log('🔑 AI SUGGEST: Current auth token length:', currentAuthToken ? currentAuthToken.length : 0);
+        
+        // Show loading state
+        improvePromptBtn.disabled = true;
+        randomPromptBtn.disabled = true;
         suggestionStatus.classList.remove('hidden');
         suggestions.classList.add('hidden');
         
@@ -550,7 +642,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (response.ok && data.suggestions) {
                 console.log('✅ AI SUGGEST: Success! Found suggestions:', data.suggestions.length);
                 console.log('✅ AI SUGGEST: Suggestions:', data.suggestions);
-                displayRandomSuggestions(data.suggestions);
+                displaySuggestions(data.suggestions, 'random');
             } else {
                 console.log('❌ AI SUGGEST: Response not ok or no suggestions');
                 console.log('❌ AI SUGGEST: Response ok:', response.ok);
@@ -567,40 +659,50 @@ document.addEventListener('DOMContentLoaded', function() {
         } finally {
             console.log('🔄 AI SUGGEST: Resetting button state');
             // Reset button state
-            suggestBtn.disabled = false;
-            suggestBtn.innerHTML = `
-                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                </svg>
-                AI Suggest
-            `;
+            improvePromptBtn.disabled = false;
+            randomPromptBtn.disabled = false;
             suggestionStatus.classList.add('hidden');
             console.log('🤖 ===== AI SUGGEST: Complete =====');
         }
     });
     
-    function displayRandomSuggestions(suggestionList) {
-        console.log('🎨 AI SUGGEST: Displaying random suggestions');
+    function displaySuggestions(suggestionList, type, originalPrompt = null) {
+        console.log('🎨 AI SUGGEST: Displaying suggestions, type:', type);
         console.log('🎨 AI SUGGEST: Suggestion count:', suggestionList.length);
         console.log('🎨 AI SUGGEST: Suggestions to display:', suggestionList);
         
         suggestions.innerHTML = '';
         suggestions.classList.remove('hidden');
         
-        // Add header
+        // Add header based on type
         const headerDiv = document.createElement('div');
-        headerDiv.className = 'mb-3 p-3 bg-blue-50 border border-blue-200 rounded-md';
-        headerDiv.innerHTML = `
-            <div class="flex items-center">
-                <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                </svg>
-                <div>
-                    <h4 class="font-semibold text-blue-900">AI-Generated Prompts</h4>
-                    <p class="text-sm text-blue-700">Click "Use" to select, or edit before using</p>
+        if (type === 'improve') {
+            headerDiv.className = 'mb-3 p-3 bg-green-50 border border-green-200 rounded-md';
+            headerDiv.innerHTML = `
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    <div>
+                        <h4 class="font-semibold text-green-900">Improved Prompts</h4>
+                        <p class="text-sm text-green-700">Based on: "${originalPrompt}"</p>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        } else {
+            headerDiv.className = 'mb-3 p-3 bg-purple-50 border border-purple-200 rounded-md';
+            headerDiv.innerHTML = `
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-purple-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5v15m7.5-7.5h-15"></path>
+                    </svg>
+                    <div>
+                        <h4 class="font-semibold text-purple-900">Random AI Ideas</h4>
+                        <p class="text-sm text-purple-700">Click "Use" to select, or edit before using</p>
+                    </div>
+                </div>
+            `;
+        }
         suggestions.appendChild(headerDiv);
         
         suggestionList.forEach((suggestion, index) => {
@@ -628,7 +730,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 Reset
                             </button>
                             <button class="regenerate-suggestion-btn text-xs text-blue-500 hover:text-blue-700 px-2 py-1 rounded border border-blue-300 hover:bg-blue-50 transition-colors"
-                                    data-index="${index}">
+                                    data-index="${index}" data-type="${type}">
                                 Regenerate
                     </button>
                         </div>
@@ -675,7 +777,8 @@ document.addEventListener('DOMContentLoaded', function() {
         regenerateButtons.forEach((btn) => {
             btn.addEventListener('click', async function() {
                 const index = this.getAttribute('data-index');
-                console.log(`🎨 AI SUGGEST: Regenerating suggestion ${parseInt(index) + 1}`);
+                const type = this.getAttribute('data-type');
+                console.log(`🎨 AI SUGGEST: Regenerating suggestion ${parseInt(index) + 1}, type: ${type}`);
                 
                 // Show loading state
                 this.disabled = true;
@@ -683,13 +786,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 try {
                     const currentAuthToken = localStorage.getItem('auth_token');
-                    const response = await fetch('/api/ai-suggest-random', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${currentAuthToken}`
-                        }
-                    });
+                    let response;
+                    
+                    if (type === 'improve') {
+                        const currentPrompt = document.getElementById('prompt').value.trim();
+                        response = await fetch('/api/ai-suggest', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${currentAuthToken}`
+                            },
+                            body: JSON.stringify({ prompt: currentPrompt })
+                        });
+                    } else {
+                        response = await fetch('/api/ai-suggest-random', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${currentAuthToken}`
+                            }
+                        });
+                    }
                     
                     const data = await response.json();
                     
