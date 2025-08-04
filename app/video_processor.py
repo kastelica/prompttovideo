@@ -24,19 +24,17 @@ class VideoProcessor:
             qr_url: URL to encode in QR code (required)
         """
         try:
-            if qr_url:
-                # Create QR code watermark
-                logger.info(f"🎯 Using QR code watermark with URL: {qr_url}")
-                return VideoProcessor._add_qr_watermark(input_path, output_path, qr_url)
-            else:
-                # No watermark - just copy the video
-                logger.info(f"⚠️ No QR URL provided, skipping watermark")
-                import shutil
-                shutil.copy2(input_path, output_path)
-                return True
+            # Temporarily disable QR code watermark due to performance issues
+            # Just copy the video without watermark for now
+            logger.info(f"⚠️ QR code watermark temporarily disabled for performance")
+            logger.info(f"📋 Copying video without watermark: {input_path} -> {output_path}")
+            import shutil
+            shutil.copy2(input_path, output_path)
+            logger.info(f"✅ Video copied successfully without watermark")
+            return True
                 
         except Exception as e:
-            logger.error(f"Error adding watermark: {str(e)}")
+            logger.error(f"Error copying video: {str(e)}")
             raise
     
     @staticmethod
