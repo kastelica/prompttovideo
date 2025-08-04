@@ -1564,12 +1564,16 @@ def api_veo_image_to_video():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@bp.route('/veo/status/<operation_name>', methods=['GET'])
+@bp.route('/veo/status/<path:operation_name>', methods=['GET'])
 @login_required
 def api_veo_status(operation_name):
     """Check the status of a VEO operation"""
     try:
         from app.veo_client import VeoClient
+        
+        # URL decode the operation name if needed
+        import urllib.parse
+        operation_name = urllib.parse.unquote(operation_name)
         
         veo_client = VeoClient()
         result = veo_client.check_image_to_video_status(operation_name)
