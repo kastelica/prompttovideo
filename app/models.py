@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask import current_app, url_for
+from flask import current_app, url_for, request
 import uuid
 
 from app import db
@@ -203,12 +203,27 @@ class User(UserMixin, db.Model):
     def get_referral_stats(self):
         """Get referral statistics for the user"""
         total_referrals = Referral.query.filter_by(referrer_id=self.id).count()
-        successful_referrals = Referral.query.filter_by(referrer_id=self.id).join(User).filter(User.email_verified == True).count()
+        
+        # Fix the ambiguous join by specifying the relationship explicitly
+        successful_referrals = Referral.query.filter_by(referrer_id=self.id).join(
+            User, Referral.referred_id == User.id
+        ).filter(User.email_verified == True).count()
+        
+        # Ensure user has a referral code
+        if not self.referral_code:
+            self.ensure_referral_code()
+            db.session.commit()
+        
+        # Generate referral URL
+        referral_url = f"{request.host_url.rstrip('/')}/ref/{self.referral_code}" if hasattr(request, 'host_url') else f"http://localhost:5000/ref/{self.referral_code}"
         
         return {
             'total_referrals': total_referrals,
             'successful_referrals': successful_referrals,
-            'referral_code': self.referral_code
+            'referred_users': successful_referrals,  # Alias for template compatibility
+            'total_earned': successful_referrals * 5,  # 5 credits per successful referral
+            'referral_code': self.referral_code,
+            'referral_url': referral_url
         }
     
     def get_avatar_text(self):

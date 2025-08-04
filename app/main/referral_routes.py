@@ -75,29 +75,10 @@ def validate_referral_code():
         })
 
 @bp.route('/referral/dashboard')
+@login_required
 def referral_dashboard():
     """User's referral dashboard"""
-    # Try to get user from JWT token if available
-    user = None
-    
-    # Check Authorization header first (for API calls)
-    token = request.headers.get('Authorization')
-    if token and token.startswith('Bearer '):
-        token = token[7:]
-        user_id = verify_token(token)
-        if user_id:
-            user = User.query.get(user_id)
-    
-    # If no user found from header, check for token in cookies (for web interface)
-    if not user:
-        token = request.cookies.get('auth_token')
-        if token:
-            user_id = verify_token(token)
-            if user_id:
-                user = User.query.get(user_id)
-    
-    if not user:
-        return redirect(url_for('auth.login_page'))
+    user = User.query.get(request.user_id)
     
     stats = user.get_referral_stats()
     

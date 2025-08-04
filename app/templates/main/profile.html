@@ -381,18 +381,22 @@ function displayVideos(videos) {
     
     const html = videos.map(video => `
         <div class="bg-white dark:bg-dark-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 dark:border-dark-700">
-            <div class="relative aspect-video bg-gray-200">
-                ${video.thumbnail_url ? 
-                    `<img src="${video.thumbnail_url}" alt="${video.title}" class="w-full h-full object-cover" style="display: block !important; visibility: visible !important; opacity: 1 !important; max-width: 100%; height: auto;">` :
-                    `<div class="flex items-center justify-center h-full text-gray-400">
-                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                        </svg>
-                    </div>`
-                }
-            </div>
+            <a href="/watch/${video.id}-${video.slug || 'video'}" class="block">
+                <div class="relative aspect-video bg-gray-200">
+                    ${video.thumbnail_url ? 
+                        `<img src="${video.thumbnail_url}" alt="${video.title}" class="w-full h-full object-cover" style="display: block !important; visibility: visible !important; opacity: 1 !important; max-width: 100%; height: auto;">` :
+                        `<div class="flex items-center justify-center h-full text-gray-400">
+                            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>`
+                    }
+                </div>
+            </a>
             <div class="p-6">
-                <h3 class="font-semibold text-gray-900 dark:text-gray-100 mb-3 line-clamp-2 text-lg">${video.title}</h3>
+                <a href="/watch/${video.id}-${video.slug || 'video'}" class="block">
+                    <h3 class="font-semibold text-gray-900 dark:text-gray-100 mb-3 line-clamp-2 text-lg hover:text-primary transition-colors">${video.title}</h3>
+                </a>
                 <div class="flex flex-wrap gap-4 items-center text-sm text-gray-500 dark:text-gray-400 mb-3">
                     <span><svg class="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg> ${video.views || 0} views</span>
                     <span><svg class="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> ${new Date(video.created_at).toLocaleDateString()}</span>

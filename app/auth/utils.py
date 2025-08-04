@@ -40,17 +40,29 @@ def login_required(f):
         current_app.logger.info(f"Request headers: {dict(request.headers)}")
         current_app.logger.info(f"Request cookies: {dict(request.cookies)}")
         
+        # Check for token in Authorization header first
         token = request.headers.get('Authorization')
         current_app.logger.info(f"Authorization header: {token}")
         
+        # If no Authorization header, check for token in cookies (for web requests)
         if not token:
-            current_app.logger.error("No Authorization header found")
-            return jsonify({
-                'error': 'Authentication required',
-                'message': 'Please log in to access this feature',
-                'code': 'AUTH_REQUIRED',
-                'redirect': '/auth/login-page?auth_required=true'
-            }), 401
+            token = request.cookies.get('auth_token')
+            current_app.logger.info(f"Auth token from cookies: {token[:20] if token else 'None'}...")
+        
+        if not token:
+            current_app.logger.error("No Authorization header or auth_token cookie found")
+            # Check if this is an API request (expects JSON) or web request (should redirect)
+            if request.path.startswith('/api/'):
+                return jsonify({
+                    'error': 'Authentication required',
+                    'message': 'Please log in to access this feature',
+                    'code': 'AUTH_REQUIRED',
+                    'redirect': '/auth/login-page?auth_required=true'
+                }), 401
+            else:
+                # For web requests, redirect to login page
+                from flask import redirect, url_for
+                return redirect(url_for('auth.login_page', auth_required='true'))
         
         if token.startswith('Bearer '):
             token = token[7:]
@@ -63,34 +75,46 @@ def login_required(f):
         
         if not user_id:
             current_app.logger.error("Token verification failed - invalid or expired token")
-            return jsonify({
-                'error': 'Session expired',
-                'message': 'Your session has expired. Please log in again.',
-                'code': 'TOKEN_EXPIRED',
-                'redirect': '/auth/login-page?session_expired=true'
-            }), 401
+            if request.path.startswith('/api/'):
+                return jsonify({
+                    'error': 'Session expired',
+                    'message': 'Your session has expired. Please log in again.',
+                    'code': 'TOKEN_EXPIRED',
+                    'redirect': '/auth/login-page?session_expired=true'
+                }), 401
+            else:
+                from flask import redirect, url_for
+                return redirect(url_for('auth.login_page', session_expired='true'))
         
         user = User.query.get(user_id)
         current_app.logger.info(f"User lookup result: {user.email if user else 'NOT FOUND'}")
         
         if not user:
             current_app.logger.error(f"User not found for ID: {user_id}")
-            return jsonify({
-                'error': 'User not found',
-                'message': 'Your account could not be found. Please log in again.',
-                'code': 'USER_NOT_FOUND',
-                'redirect': '/auth/login-page?session_expired=true'
-            }), 401
+            if request.path.startswith('/api/'):
+                return jsonify({
+                    'error': 'User not found',
+                    'message': 'Your account could not be found. Please log in again.',
+                    'code': 'USER_NOT_FOUND',
+                    'redirect': '/auth/login-page?session_expired=true'
+                }), 401
+            else:
+                from flask import redirect, url_for
+                return redirect(url_for('auth.login_page', session_expired='true'))
         
         # Check if email is verified (required for all users)
         if not user.email_verified:
             current_app.logger.error(f"Email not verified for user: {user.email}")
-            return jsonify({
-                'error': 'Email not verified',
-                'message': 'Please verify your email address to access this feature. Check your inbox for a verification link.',
-                'code': 'EMAIL_NOT_VERIFIED',
-                'redirect': '/auth/verify-email'
-            }), 401
+            if request.path.startswith('/api/'):
+                return jsonify({
+                    'error': 'Email not verified',
+                    'message': 'Please verify your email address to access this feature. Check your inbox for a verification link.',
+                    'code': 'EMAIL_NOT_VERIFIED',
+                    'redirect': '/auth/verify-email'
+                }), 401
+            else:
+                from flask import redirect, url_for
+                return redirect(url_for('auth.verify_email'))
         
         request.user_id = user_id
         request.current_user = user

@@ -68,12 +68,37 @@
             </div>
             
             <div class="text-center text-sm text-gray-600">
-                <p>By creating an account, you'll get:</p>
-                <ul class="mt-2 space-y-1">
-                    <li>• {{ config.DAILY_FREE_CREDITS or 3 }} free credits daily</li>
-                    <li>• Access to 360p video generation</li>
-                    <li>• Premium 1080p videos with credits</li>
-                </ul>
+                <p class="font-medium text-gray-900 mb-3">🎬 Create Amazing Videos with AI</p>
+                <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-4">
+                    <p class="text-xs text-gray-700 mb-2">By creating an account, you'll get:</p>
+                    <ul class="space-y-2 text-xs">
+                        <li class="flex items-center">
+                            <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                            <span class="font-medium">{{ config.DAILY_FREE_CREDITS or 3 }} free credits daily</span>
+                        </li>
+                        <li class="flex items-center">
+                            <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                            <span>AI-powered video generation from text prompts</span>
+                        </li>
+                        <li class="flex items-center">
+                            <span class="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
+                            <span>Premium 1080p videos with audio (3 credits)</span>
+                        </li>
+                        <li class="flex items-center">
+                            <span class="w-2 h-2 bg-orange-500 rounded-full mr-2"></span>
+                            <span>Free standard videos (1 credit)</span>
+                        </li>
+                        <li class="flex items-center">
+                            <span class="w-2 h-2 bg-indigo-500 rounded-full mr-2"></span>
+                            <span>Community challenges & video sharing</span>
+                        </li>
+                        <li class="flex items-center">
+                            <span class="w-2 h-2 bg-teal-500 rounded-full mr-2"></span>
+                            <span>Referral program - earn 5 credits per friend</span>
+                        </li>
+                    </ul>
+                </div>
+                <p class="text-xs text-gray-500">Join thousands of creators already using PromptToVideo!</p>
             </div>
         </form>
         
