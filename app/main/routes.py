@@ -1066,9 +1066,21 @@ def my_videos():
     return redirect(url_for('main.profile') + '?tab=videos')
 
 @bp.route('/veo-image-test')
-@login_required
 def veo_image_test():
     """VEO Image-to-Video test page"""
+    # Check for auth token in cookie (web interface)
+    auth_token = request.cookies.get('auth_token')
+    if not auth_token:
+        # No token found, redirect to login
+        return redirect(url_for('auth.login_page'))
+    
+    # Verify the token
+    user_id = verify_token(auth_token)
+    if not user_id:
+        # Invalid token, redirect to login
+        return redirect(url_for('auth.login_page'))
+    
+    # Token is valid, render the page
     return render_template('main/veo_image_test.html')
 
  
