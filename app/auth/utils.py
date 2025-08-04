@@ -82,6 +82,16 @@ def login_required(f):
                 'redirect': '/auth/login-page?session_expired=true'
             }), 401
         
+        # Check if email is verified (required for all users)
+        if not user.email_verified:
+            current_app.logger.error(f"Email not verified for user: {user.email}")
+            return jsonify({
+                'error': 'Email not verified',
+                'message': 'Please verify your email address to access this feature. Check your inbox for a verification link.',
+                'code': 'EMAIL_NOT_VERIFIED',
+                'redirect': '/auth/verify-email'
+            }), 401
+        
         request.user_id = user_id
         request.current_user = user
         current_app.logger.info(f"Authentication successful - User: {user.email}")

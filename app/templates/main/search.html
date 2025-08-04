@@ -119,10 +119,16 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔍 SEARCH: Page loaded');
+    
     // Get search query from URL
     const urlParams = new URLSearchParams(window.location.search);
     const query = urlParams.get('q') || '';
     const type = urlParams.get('type') || 'all';
+    const action = urlParams.get('action');
+    const userId = urlParams.get('userId');
+    
+    console.log('🔍 SEARCH: URL params - query:', query, 'type:', type, 'action:', action, 'userId:', userId);
     
     // Set initial state
     document.getElementById('searchInput').value = query;
@@ -131,6 +137,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (query) {
         document.getElementById('searchQuery').textContent = `Results for "${query}"`;
         performSearch();
+    }
+    
+    // Handle pending actions after login
+    if (action === 'follow_user' && userId) {
+        // Execute the follow action
+        setTimeout(() => {
+            followUser(parseInt(userId));
+        }, 1000); // Small delay to ensure page is loaded
     }
     
     // Add search input listener
@@ -160,7 +174,10 @@ function setSearchType(type, performNewSearch = true) {
 async function performSearch() {
     const query = document.getElementById('searchInput').value.trim();
     
+    console.log('🔍 SEARCH: Performing search for:', query);
+    
     if (!query) {
+        console.log('🔍 SEARCH: No query provided, showing no results');
         showNoResults();
         return;
     }
@@ -178,16 +195,34 @@ async function performSearch() {
     showLoading();
     
     try {
-        const response = await fetch(`/api/v1/search?q=${encodeURIComponent(query)}&type=${currentSearchType}`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-            }
+        const authToken = localStorage.getItem('auth_token');
+        const headers = {};
+        
+        // Only add Authorization header if user is logged in
+        if (authToken) {
+            headers['Authorization'] = `Bearer ${authToken}`;
+            console.log('🔍 SEARCH: Using authenticated request');
+        } else {
+            console.log('🔍 SEARCH: Using anonymous request');
+        }
+        
+        const searchUrl = `/api/v1/search?q=${encodeURIComponent(query)}&type=${currentSearchType}`;
+        console.log('🔍 SEARCH: Fetching from:', searchUrl);
+        
+        const response = await fetch(searchUrl, {
+            headers: headers
         });
         
         if (response.ok) {
             const data = await response.json();
             displaySearchResults(data);
+        } else if (response.status === 401) {
+            // Unauthorized - user needs to log in, but search should still work
+            console.log('Search: User not authenticated, but search should work for public content');
+            const data = await response.json();
+            displaySearchResults(data);
         } else {
+            console.error('Search error:', response.status, response.statusText);
             showNoResults();
         }
     } catch (error) {
@@ -268,7 +303,12 @@ function displayVideoResults(videos) {
                 <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2">${video.display_title || video.title || 'Untitled'}</h3>
                 ${video.description ? `<p class="text-sm text-gray-500 mb-2 line-clamp-1">${video.description}</p>` : ''}
                 <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
-                    <span>By ${video.user.display_name || video.user.username || video.user.email}</span>
+                    <a href="/profile/${video.user.id}" class="flex items-center hover:text-primary transition-colors">
+                        <div class="w-4 h-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-xs font-semibold mr-2">
+                            ${(video.user.display_name || video.user.username || video.user.email).charAt(0).toUpperCase()}
+                        </div>
+                        <span>${video.user.display_name || video.user.username || video.user.email}</span>
+                    </a>
                     <span>${video.views || 0} views</span>
                 </div>
                 <div class="flex items-center justify-between text-xs text-gray-400">
@@ -300,7 +340,7 @@ function displayUserResults(users) {
         <div class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer"
              onclick="window.location.href='/profile/${user.id}'">
             <div class="flex items-center mb-4">
-                <div class="w-16 h-16 bg-primary text-white rounded-full flex items-center justify-center text-xl font-semibold mr-4">
+                <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center text-xl font-semibold mr-4">
                     ${user.avatar_url ? 
                         `<img src="${user.avatar_url}" alt="${user.display_name}" class="w-full h-full object-cover rounded-full">` :
                         `${(user.display_name || user.username || user.email).charAt(0).toUpperCase()}`
@@ -367,11 +407,23 @@ function searchByTag(tagName) {
 }
 
 async function followUser(userId) {
+    const authToken = localStorage.getItem('auth_token');
+    
+    if (!authToken) {
+        // Show login prompt for anonymous users
+        if (typeof showLoginPrompt === 'function') {
+            showLoginPrompt('Please log in to follow users.', 'follow_user', { userId: userId });
+        } else {
+            alert('Please log in to follow users.');
+        }
+        return;
+    }
+    
     try {
         const response = await fetch(`/api/v1/follow/${userId}`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                'Authorization': `Bearer ${authToken}`
             }
         });
         

@@ -444,7 +444,14 @@ function displaySubmissions(submissions) {
                             <span class="text-lg">${submission.rank === 1 ? '🥇' : submission.rank === 2 ? '🥈' : '🥉'}</span>
                         ` : ''}
                     </div>
-                    <p class="text-sm text-gray-600 mb-2">by ${submission.user.username || submission.user.email}</p>
+                    <p class="text-sm text-gray-600 mb-2">
+                        <a href="/profile/${submission.user.id}" class="flex items-center hover:text-primary transition-colors">
+                            <div class="w-4 h-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-xs font-semibold mr-2">
+                                ${(submission.user.username || submission.user.email).charAt(0).toUpperCase()}
+                            </div>
+                            <span>by ${submission.user.username || submission.user.email}</span>
+                        </a>
+                    </p>
                     ${submission.description ? `<p class="text-sm text-gray-700 mb-2">${submission.description}</p>` : ''}
                     <div class="flex items-center justify-between">
                         <span class="text-sm text-gray-500">${submission.vote_count} votes</span>

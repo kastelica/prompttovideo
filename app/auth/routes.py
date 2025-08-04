@@ -256,4 +256,51 @@ def register_page():
 @bp.route('/forgot-password-page')
 def forgot_password_page():
     """Show forgot password page"""
-    return render_template('auth/forgot_password.html') 
+    return render_template('auth/forgot_password.html')
+
+@bp.route('/verify-email')
+def verify_email_page():
+    """Show email verification page"""
+    return render_template('auth/verify_email.html')
+
+@bp.route('/resend-verification', methods=['POST'])
+def resend_verification():
+    """Resend verification email"""
+    data = request.get_json()
+    
+    if not data or 'email' not in data:
+        return jsonify({'error': 'Email is required'}), 400
+    
+    email = data['email'].lower().strip()
+    user = User.query.filter_by(email=email).first()
+    
+    if not user:
+        # Don't reveal if user exists
+        return jsonify({
+            'success': True,
+            'message': 'If the email exists, a verification link has been sent'
+        })
+    
+    if user.email_verified:
+        return jsonify({
+            'success': True,
+            'message': 'Email is already verified'
+        })
+    
+    # Generate new verification token
+    user.email_verification_token = str(uuid.uuid4())
+    user.email_verification_expires = datetime.utcnow() + timedelta(hours=1)
+    db.session.commit()
+    
+    # Send verification email
+    email_sent = send_auth_email(user.email, 'verify_email', user.email_verification_token)
+    
+    if email_sent:
+        return jsonify({
+            'success': True,
+            'message': 'Verification email sent successfully'
+        })
+    else:
+        return jsonify({
+            'error': 'Failed to send verification email. Please try again.'
+        }), 500 

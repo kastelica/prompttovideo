@@ -166,8 +166,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.token) {
                     // Store token and redirect
                     localStorage.setItem('auth_token', data.token);
+                    // Trigger storage event for other tabs/pages
+                    window.dispatchEvent(new StorageEvent('storage', {
+                        key: 'auth_token',
+                        newValue: data.token,
+                        oldValue: null
+                    }));
                     showStatus('Account created successfully! Redirecting...', 'success');
                     setTimeout(() => {
+                        // Check if there's a pending action to execute
+                        const pendingAction = localStorage.getItem('pending_action');
+                        if (pendingAction) {
+                            try {
+                                const action = JSON.parse(pendingAction);
+                                const now = Date.now();
+                                if (now - action.timestamp < 300000) {
+                                    // Execute the pending action
+                                    executePendingAction(action);
+                                    return;
+                                }
+                            } catch (error) {
+                                console.error('Error parsing pending action:', error);
+                            }
+                        }
+                        // Default redirect to dashboard
                         window.location.href = '/dashboard';
                     }, 1000);
                 } else {
@@ -201,6 +223,41 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => {
             statusMessage.classList.add('hidden');
         }, 5000);
+    }
+    
+    // Execute pending action after registration
+    function executePendingAction(action) {
+        switch (action.action) {
+            case 'generate_video':
+                window.location.href = '/?action=generate_video&prompt=' + encodeURIComponent(action.data.prompt) + '&quality=' + action.data.quality;
+                break;
+            case 'go_to_dashboard':
+                // Force a clean navigation to dashboard
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState(null, null, '/dashboard');
+                }
+                window.location.href = '/dashboard';
+                break;
+            case 'chat_message':
+                if (action.data.message) {
+                    // For chat messages, redirect to the video page with pending chat
+                    const currentUrl = new URL(window.location.href);
+                    const returnUrl = currentUrl.searchParams.get('return_url') || '/';
+                    window.location.href = returnUrl + '?pending_chat=' + encodeURIComponent(action.data.message);
+                } else {
+                    window.location.href = '/';
+                }
+                break;
+            case 'ai_suggest':
+                window.location.href = '/?action=ai_suggest&type=' + action.data.type + '&prompt=' + encodeURIComponent(action.data.prompt || '');
+                break;
+            case 'follow_user':
+                // Redirect to search page with follow action
+                window.location.href = '/search?action=follow_user&userId=' + action.data.userId;
+                break;
+            default:
+                window.location.href = '/dashboard';
+        }
     }
 });
 </script>

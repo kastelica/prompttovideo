@@ -215,7 +215,19 @@ def generate_video():
 @bp.route('/search')
 def search():
     """Search results page"""
+    # Add some debugging info
+    current_app.logger.info(f"Search page accessed - User agent: {request.headers.get('User-Agent')}")
+    current_app.logger.info(f"Search page accessed - Referer: {request.headers.get('Referer')}")
     return render_template('main/search.html')
+
+@bp.route('/search-test')
+def search_test():
+    """Simple test endpoint to verify search functionality"""
+    return jsonify({
+        'status': 'ok',
+        'message': 'Search functionality is working',
+        'timestamp': datetime.utcnow().isoformat()
+    })
 
 @bp.route('/challenges')
 def challenges():

@@ -86,7 +86,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
-                    <a href="{{ url_for('main.index') }}" class="text-xl md:text-2xl font-bold text-primary">
+                    <a href="{{ url_for('main.index') }}" class="text-xl md:text-2xl font-bold text-primary" onclick="console.log('🏠 HOME NAV: Home link clicked, current URL:', window.location.href, 'referrer:', document.referrer);">
                         Prompt ➡️ Videos
                     </a>
                 </div>
@@ -452,7 +452,7 @@
                     <h4 class="text-lg font-semibold mb-4">Quick Links</h4>
                     <ul class="space-y-2">
                         <li><a href="{{ url_for('main.index') }}" class="text-gray-300 hover:text-white transition-colors">Home</a></li>
-                        <li><a href="{{ url_for('main.dashboard') }}" class="text-gray-300 hover:text-white transition-colors">Dashboard</a></li>
+                        <li><a href="{{ url_for('main.dashboard') }}" id="footerDashboardLink" class="text-gray-300 hover:text-white transition-colors">Dashboard</a></li>
                         <li><a href="{{ url_for('main.challenges') }}" class="text-gray-300 hover:text-white transition-colors">Challenges</a></li>
                         <li><a href="{{ url_for('payments.credit_packs_page') }}" class="text-gray-300 hover:text-white transition-colors">Buy Credits</a></li>
                         <li><a href="{{ url_for('main.api_docs') }}" class="text-gray-300 hover:text-white transition-colors">API Documentation</a></li>
@@ -713,6 +713,28 @@
             
             const authToken = localStorage.getItem('auth_token');
             
+                    // Add authentication check for footer dashboard link
+        const footerDashboardLink = document.getElementById('footerDashboardLink');
+        if (footerDashboardLink) {
+            footerDashboardLink.addEventListener('click', function(e) {
+                console.log('🏠 FOOTER NAV: Footer dashboard link clicked');
+                const currentAuthToken = localStorage.getItem('auth_token');
+                if (!currentAuthToken) {
+                    console.log('🏠 FOOTER NAV: No auth token - preventing navigation');
+                    e.preventDefault();
+                    // Use the global showLoginPrompt function if available, otherwise show alert
+                    if (typeof showLoginPrompt === 'function') {
+                        showLoginPrompt('Please log in to access your dashboard.', 'go_to_dashboard', {});
+                    } else {
+                        alert('Please log in to access your dashboard.');
+                    }
+                    return;
+                } else {
+                    console.log('🏠 FOOTER NAV: Auth token found - allowing navigation');
+                }
+            });
+        }
+            
             // Desktop navigation elements
             const navLogin = document.getElementById('navLogin');
             const navSignup = document.getElementById('navSignup');
@@ -745,6 +767,7 @@
                 mobileNavSignup.classList.remove('hidden');
                 
                 // Initialize search for non-authenticated users too
+                initializeSearch();
                 initializeMobileSearch();
             }
             
@@ -754,10 +777,16 @@
         
         // Initialize search functionality
         function initializeSearch() {
+            console.log('🔍 BASE: Initializing search functionality');
             const searchInput = document.getElementById('globalSearch');
             const suggestionsDiv = document.getElementById('searchSuggestions');
             
-            if (!searchInput) return;
+            if (!searchInput) {
+                console.log('🔍 BASE: Search input not found');
+                return;
+            }
+            
+            console.log('🔍 BASE: Search input found, adding event listeners');
             
             searchInput.addEventListener('input', function() {
                 const query = this.value.trim();
@@ -796,16 +825,28 @@
         
         // Fetch search suggestions
         async function fetchSearchSuggestions(query) {
+            console.log('🔍 BASE: Fetching search suggestions for:', query);
             try {
+                const authToken = localStorage.getItem('auth_token');
+                const headers = {};
+                
+                // Only add Authorization header if user is logged in
+                if (authToken) {
+                    headers['Authorization'] = `Bearer ${authToken}`;
+                    console.log('🔍 BASE: Using authenticated request');
+                } else {
+                    console.log('🔍 BASE: Using anonymous request');
+                }
+                
                 const response = await fetch(`/api/v1/search/suggestions?q=${encodeURIComponent(query)}`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-                    }
+                    headers: headers
                 });
                 
                 if (response.ok) {
                     const data = await response.json();
                     displaySearchSuggestions(data.suggestions);
+                } else {
+                    console.error('Search suggestions error:', response.status, response.statusText);
                 }
             } catch (error) {
                 console.error('Error fetching search suggestions:', error);
@@ -1094,13 +1135,19 @@
         
         // Initialize mobile search functionality
         function initializeMobileSearch() {
+            console.log('🔍 BASE: Initializing mobile search functionality');
             const mobileSearchBtn = document.getElementById('mobileSearchBtn');
             const mobileSearchOverlay = document.getElementById('mobileSearchOverlay');
             const mobileSearchInput = document.getElementById('mobileSearchInput');
             const closeMobileSearchBtn = document.getElementById('closeMobileSearch');
             const mobileSearchSuggestions = document.getElementById('mobileSearchSuggestions');
             
-            if (!mobileSearchBtn || !mobileSearchOverlay) return;
+            if (!mobileSearchBtn || !mobileSearchOverlay) {
+                console.log('🔍 BASE: Mobile search elements not found');
+                return;
+            }
+            
+            console.log('🔍 BASE: Mobile search elements found, adding event listeners');
             
             // Open mobile search
             mobileSearchBtn.addEventListener('click', function() {
@@ -1284,9 +1331,124 @@
             }
         });
         
+
+        
+        // Global login prompt function (for use across all pages)
+        function showLoginPrompt(message = 'Please log in to continue.', action = null, actionData = null) {
+            console.log('🔑 GLOBAL LOGIN PROMPT: Showing login prompt with action:', action, 'data:', actionData);
+            
+            // Store the intended action for after login
+            if (action && actionData) {
+                const pendingAction = {
+                    action: action,
+                    data: actionData,
+                    timestamp: Date.now()
+                };
+                console.log('🔑 GLOBAL LOGIN PROMPT: Storing pending action:', pendingAction);
+                localStorage.setItem('pending_action', JSON.stringify(pendingAction));
+            }
+            
+            // Remove any existing login prompt
+            const existingPrompt = document.querySelector('.login-prompt-overlay');
+            if (existingPrompt) {
+                existingPrompt.remove();
+            }
+            
+            const loginPrompt = document.createElement('div');
+            loginPrompt.className = 'login-prompt-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            loginPrompt.innerHTML = `
+                <div class="bg-white dark:bg-dark-800 rounded-lg p-8 max-w-md mx-4 text-center shadow-xl">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Login Required</h2>
+                    <p class="text-gray-600 dark:text-gray-400 mb-6">${message}</p>
+                    <div class="space-y-3">
+                        <a href="/auth/login-page" class="block w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-secondary transition-colors">
+                            Log In
+                        </a>
+                        <a href="/auth/register-page" class="block w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 transition-colors">
+                            Sign Up
+                        </a>
+                        <button onclick="closeLoginPrompt()" class="block w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition-colors">
+                            Continue Browsing
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(loginPrompt);
+        }
+        
+        function closeLoginPrompt() {
+            const loginPrompt = document.querySelector('.login-prompt-overlay');
+            if (loginPrompt) {
+                loginPrompt.remove();
+            }
+        }
+        
+        // Global function to handle authentication errors from API responses
+        function handleAuthError(response, data) {
+            console.log('🔐 GLOBAL AUTH ERROR: Handling auth error:', data);
+            
+            if (response.status === 401) {
+                const errorCode = data.code;
+                
+                if (errorCode === 'EMAIL_NOT_VERIFIED') {
+                    // Show email verification prompt
+                    showEmailVerificationPrompt(data.message || 'Please verify your email address to access this feature.');
+                } else if (errorCode === 'TOKEN_EXPIRED' || errorCode === 'USER_NOT_FOUND') {
+                    // Clear invalid token and show login prompt
+                    localStorage.removeItem('auth_token');
+                    showLoginPrompt(data.message || 'Your session has expired. Please log in again.');
+                } else {
+                    // Generic authentication required
+                    showLoginPrompt(data.message || 'Please log in to access this feature.');
+                }
+                return true; // Error was handled
+            }
+            return false; // Error was not handled
+        }
+        
+        // Function to show email verification prompt
+        function showEmailVerificationPrompt(message) {
+            console.log('📧 EMAIL VERIFICATION: Showing verification prompt');
+            
+            // Remove any existing prompts
+            const existingPrompt = document.querySelector('.login-prompt-overlay');
+            if (existingPrompt) {
+                existingPrompt.remove();
+            }
+            
+            const verificationPrompt = document.createElement('div');
+            verificationPrompt.className = 'login-prompt-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            verificationPrompt.innerHTML = `
+                <div class="bg-white dark:bg-dark-800 rounded-lg p-8 max-w-md mx-4 text-center shadow-xl">
+                    <div class="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-yellow-100 mb-4">
+                        <svg class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Email Verification Required</h2>
+                    <p class="text-gray-600 dark:text-gray-400 mb-6">${message}</p>
+                    <div class="space-y-3">
+                        <a href="/auth/verify-email" class="block w-full bg-yellow-500 text-white py-2 px-4 rounded-md hover:bg-yellow-600 transition-colors">
+                            Verify Email
+                        </a>
+                        <button onclick="closeLoginPrompt()" class="block w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition-colors">
+                            Continue Browsing
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(verificationPrompt);
+        }
+        
         // Logout function
         function logout() {
             localStorage.removeItem('auth_token');
+            // Trigger storage event for other tabs/pages
+            window.dispatchEvent(new StorageEvent('storage', {
+                key: 'auth_token',
+                newValue: null,
+                oldValue: localStorage.getItem('auth_token')
+            }));
             window.location.href = '/auth/login-page';
         }
         

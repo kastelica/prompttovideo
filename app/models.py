@@ -202,23 +202,36 @@ class User(UserMixin, db.Model):
     
     def get_referral_stats(self):
         """Get referral statistics for the user"""
-        # Ensure user has a referral code
-        if not self.referral_code:
-            self.referral_code = self.generate_referral_code()
-            db.session.commit()
-        
-        referred_users = User.query.filter_by(referred_by=self.referral_code).count()
-        total_earned = CreditTransaction.query.filter_by(
-            user_id=self.id,
-            source='referral'
-        ).with_entities(db.func.sum(CreditTransaction.amount)).scalar() or 0
+        total_referrals = Referral.query.filter_by(referrer_id=self.id).count()
+        successful_referrals = Referral.query.filter_by(referrer_id=self.id).join(User).filter(User.email_verified == True).count()
         
         return {
-            'referral_code': self.referral_code,
-            'referred_users': referred_users,
-            'total_earned': total_earned,
-            'referral_url': f"{current_app.config.get('BASE_URL', 'https://prompttovideo.com')}/ref/{self.referral_code}"
+            'total_referrals': total_referrals,
+            'successful_referrals': successful_referrals,
+            'referral_code': self.referral_code
         }
+    
+    def get_avatar_text(self):
+        """Get the text to display in user avatar (first letter of display name or email)"""
+        if self.profile and self.profile.display_name:
+            return self.profile.display_name[0].upper()
+        elif self.username:
+            return self.username[0].upper()
+        else:
+            return self.email[0].upper()
+    
+    def get_display_name(self):
+        """Get the user's display name for showing in UI"""
+        if self.profile and self.profile.display_name:
+            return self.profile.display_name
+        elif self.username:
+            return self.username
+        else:
+            return self.email.split('@')[0]
+    
+    def get_username_or_email(self):
+        """Get username if available, otherwise email"""
+        return self.username or self.email
     
     def process_referral_signup(self, referred_user):
         """Process referral when a new user signs up using this user's code"""

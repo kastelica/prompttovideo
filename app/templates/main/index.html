@@ -20,9 +20,15 @@
         Generate Video
         </a>
         <a href="{{ url_for('main.dashboard') }}" 
+           id="dashboardBtn"
            class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 dark:border-dark-600 text-base font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-800 hover:bg-gray-50 dark:hover:bg-dark-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors">
             Go to Dashboard
         </a>
+    </div>
+    
+    <!-- Login Status Indicator -->
+    <div id="loginStatus" class="mt-4 text-sm text-gray-600 dark:text-gray-400">
+        <span id="loginStatusText">Welcome! Browse videos or log in to create your own.</span>
     </div>
 </div>
 
@@ -256,7 +262,12 @@
                     </div>
                     {% if video.user %}
                     <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                        by {{ video.user.email }}
+                        <a href="/profile/{{ video.user.id }}" class="flex items-center hover:text-primary transition-colors">
+                            <div class="w-4 h-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-xs font-semibold mr-2">
+                                {{ video.user.get_avatar_text() }}
+                            </div>
+                            <span>{{ video.user.get_display_name() }}</span>
+                        </a>
                     </div>
                     {% endif %}
                 </div>
@@ -385,30 +396,8 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('🔑 SCRIPT: Auth token available:', authToken ? 'YES' : 'NO');
     console.log('🔑 SCRIPT: Auth token length:', authToken ? authToken.length : 0);
     
-    if (!authToken) {
-        console.log('❌ SCRIPT: No auth token - showing login prompt');
-        // Show login prompt or redirect to login
-        const loginPrompt = document.createElement('div');
-        loginPrompt.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-        loginPrompt.innerHTML = `
-            <div class="bg-white dark:bg-dark-800 rounded-lg p-8 max-w-md mx-4 text-center">
-                <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Login Required</h2>
-                <p class="text-gray-600 dark:text-gray-400 mb-6">Please log in to generate videos.</p>
-                <div class="space-y-3">
-                    <a href="/auth/login-page" class="block w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-secondary transition-colors">
-                        Log In
-                    </a>
-                    <a href="/auth/register-page" class="block w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 transition-colors">
-                        Sign Up
-                    </a>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(loginPrompt);
-        return;
-    }
-    
-    console.log('✅ SCRIPT: Auth token found, proceeding with setup');
+    // Initialize the page for both logged in and anonymous users
+    console.log('✅ SCRIPT: Initializing page for all users');
     
     const form = document.getElementById('generateForm');
     const qualitySelect = document.getElementById('quality');
@@ -420,6 +409,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const randomPromptBtn = document.getElementById('randomPromptBtn');
     const suggestionStatus = document.getElementById('suggestionStatus');
     const suggestions = document.getElementById('suggestions');
+    const dashboardBtn = document.getElementById('dashboardBtn');
+    
+    // Update UI based on authentication state
+    updateUIForAuthState();
+    
+    // Handle dashboard button click
+    dashboardBtn.addEventListener('click', function(e) {
+        console.log('🏠 NAV: Dashboard button clicked');
+        const currentAuthToken = localStorage.getItem('auth_token');
+        if (!currentAuthToken) {
+            console.log('🏠 NAV: No auth token - showing login prompt');
+            e.preventDefault();
+            showLoginPrompt('Please log in to access your dashboard.', 'go_to_dashboard', {});
+        } else {
+            console.log('🏠 NAV: Auth token found - navigating to dashboard');
+        }
+    });
     
     // Update credit cost when quality changes
     qualitySelect.addEventListener('change', function() {
@@ -447,10 +453,19 @@ document.addEventListener('DOMContentLoaded', function() {
         
         console.log('🎬 ===== FRONTEND: Generate Video Button Clicked =====');
         
+        // Get form data first
         const formData = {
             prompt: document.getElementById('prompt').value,
             quality: qualitySelect.value
         };
+        
+        // Check authentication first
+        const currentAuthToken = localStorage.getItem('auth_token');
+        if (!currentAuthToken) {
+            console.log('❌ FRONTEND: No auth token - showing login prompt');
+            showLoginPrompt('Please log in to generate videos.', 'generate_video', formData);
+            return;
+        }
         
         console.log('📝 FRONTEND: Form data collected:', formData);
         console.log('📝 FRONTEND: Prompt:', formData.prompt);
@@ -462,15 +477,7 @@ document.addEventListener('DOMContentLoaded', function() {
         generationStatus.classList.remove('hidden');
         
         try {
-            console.log('🔑 FRONTEND: Auth token found:', authToken ? 'YES' : 'NO');
-            
-            if (!authToken) {
-                console.log('❌ FRONTEND: No auth token - showing login prompt');
-                statusText.textContent = 'Please log in to generate videos.';
-                generationStatus.classList.remove('bg-blue-50', 'border-blue-200');
-                generationStatus.classList.add('bg-red-50', 'border-red-200');
-                return;
-            }
+            console.log('🔑 FRONTEND: Auth token found:', currentAuthToken ? 'YES' : 'NO');
             
             console.log('📤 FRONTEND: Sending request to /generate');
             console.log('📤 FRONTEND: Request payload:', JSON.stringify(formData));
@@ -479,7 +486,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authToken}`
+                    'Authorization': `Bearer ${currentAuthToken}`
                 },
                 body: JSON.stringify(formData)
             });
@@ -509,6 +516,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 2000);
             } else {
                 console.log('❌ FRONTEND: Request failed:', data.error);
+                
+                // Handle authentication errors globally
+                if (handleAuthError(response, data)) {
+                    // Error was handled by global function, don't show generic error
+                    return;
+                }
+                
                 statusText.textContent = `Error: ${data.error}`;
                 generationStatus.classList.remove('bg-blue-50', 'border-blue-200');
                 generationStatus.classList.add('bg-red-50', 'border-red-200');
@@ -531,8 +545,17 @@ document.addEventListener('DOMContentLoaded', function() {
     improvePromptBtn.addEventListener('click', async function() {
         console.log('🤖 ===== AI SUGGEST: Improve Prompt Button Clicked =====');
         
-        // Get auth token again to ensure it's available
+        // Get the current prompt value first
+        const currentPrompt = document.getElementById('prompt').value.trim();
+        
+        // Check authentication first
         const currentAuthToken = localStorage.getItem('auth_token');
+        if (!currentAuthToken) {
+            console.log('❌ AI SUGGEST: No auth token - showing login prompt');
+            showLoginPrompt('Please log in to use AI suggestions.', 'ai_suggest', { type: 'improve', prompt: currentPrompt });
+            return;
+        }
+        
         console.log('🔑 AI SUGGEST: Current auth token available:', currentAuthToken ? 'YES' : 'NO');
         console.log('🔑 AI SUGGEST: Current auth token length:', currentAuthToken ? currentAuthToken.length : 0);
         
@@ -546,10 +569,7 @@ document.addEventListener('DOMContentLoaded', function() {
         suggestionStatus.classList.remove('hidden');
         suggestions.classList.add('hidden');
         
-                 // Get the current prompt value
-         const currentPrompt = document.getElementById('prompt').value.trim();
-         
-         if (!currentPrompt) {
+        if (!currentPrompt) {
              alert('Please type something in the prompt field first to improve it.');
              improvePromptBtn.disabled = false;
              randomPromptBtn.disabled = false;
@@ -584,6 +604,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('❌ AI SUGGEST: Response ok:', response.ok);
                 console.log('❌ AI SUGGEST: Has suggestions:', !!data.suggestions);
                 console.log('❌ AI SUGGEST: Error in data:', data.error);
+                
+                // Handle authentication errors globally
+                if (handleAuthError(response, data)) {
+                    // Error was handled by global function, don't show generic error
+                    return;
+                }
+                
                 throw new Error(data.error || 'Failed to get suggestions');
             }
         } catch (error) {
@@ -611,8 +638,14 @@ document.addEventListener('DOMContentLoaded', function() {
     randomPromptBtn.addEventListener('click', async function() {
         console.log('🤖 ===== AI SUGGEST: Random Ideas Button Clicked =====');
         
-        // Get auth token again to ensure it's available
+        // Check authentication first
         const currentAuthToken = localStorage.getItem('auth_token');
+        if (!currentAuthToken) {
+            console.log('❌ AI SUGGEST: No auth token - showing login prompt');
+            showLoginPrompt('Please log in to use AI suggestions.', 'ai_suggest', { type: 'random' });
+            return;
+        }
+        
         console.log('🔑 AI SUGGEST: Current auth token available:', currentAuthToken ? 'YES' : 'NO');
         console.log('🔑 AI SUGGEST: Current auth token length:', currentAuthToken ? currentAuthToken.length : 0);
         
@@ -648,6 +681,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('❌ AI SUGGEST: Response ok:', response.ok);
                 console.log('❌ AI SUGGEST: Has suggestions:', !!data.suggestions);
                 console.log('❌ AI SUGGEST: Error in data:', data.error);
+                
+                // Handle authentication errors globally
+                if (handleAuthError(response, data)) {
+                    // Error was handled by global function, don't show generic error
+                    return;
+                }
+                
                 throw new Error(data.error || 'Failed to get suggestions');
             }
         } catch (error) {
@@ -860,11 +900,53 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize video error handling
     document.addEventListener('DOMContentLoaded', function() {
+        console.log('🎬 ===== FRONTEND: Index page loaded =====');
+        console.log('🎬 FRONTEND: Current URL:', window.location.href);
+        console.log('🎬 FRONTEND: Referrer:', document.referrer);
+        console.log('🎬 FRONTEND: localStorage pending_action:', localStorage.getItem('pending_action'));
+        
         handleVideoErrors();
         initializeChat();
         initializeSmoothScrolling();
         initializeAdjectiveTicker();
+        
+        // Sync auth token from cookies to localStorage if needed
+        syncAuthTokenFromCookies();
+        
+        // Check for pending actions after login
+        console.log('🎬 FRONTEND: About to check pending actions');
+        checkPendingActions();
+        
+        // Handle URL parameters for redirect actions
+        handleUrlActions();
+    
+    // Listen for authentication state changes
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'auth_token') {
+                console.log('🔑 AUTH: Authentication state changed');
+                updateUIForAuthState();
+                // Check for pending actions when auth state changes
+                setTimeout(checkPendingActions, 500);
+            }
+        });
     });
+    
+    // Function to sync auth token from cookies to localStorage
+    function syncAuthTokenFromCookies() {
+        const cookies = document.cookie.split(';');
+        const authCookie = cookies.find(cookie => cookie.trim().startsWith('auth_token='));
+        
+        if (authCookie) {
+            const token = authCookie.split('=')[1];
+            const currentToken = localStorage.getItem('auth_token');
+            
+            if (token && token !== currentToken) {
+                console.log('🔑 AUTH: Syncing auth token from cookies to localStorage');
+                localStorage.setItem('auth_token', token);
+                updateUIForAuthState();
+            }
+        }
+    }
     
     // Smooth scrolling for anchor links
     function initializeSmoothScrolling() {
@@ -892,6 +974,244 @@ document.addEventListener('DOMContentLoaded', function() {
                     }, 500);
                 }
             });
+        }
+    }
+    
+    // ===== LOGIN PROMPT FUNCTION =====
+    function showLoginPrompt(message = 'Please log in to continue.', action = null, actionData = null) {
+        console.log('🔑 LOGIN PROMPT: Showing login prompt with action:', action, 'data:', actionData);
+        // Store the intended action for after login
+        if (action && actionData) {
+            const pendingAction = {
+                action: action,
+                data: actionData,
+                timestamp: Date.now()
+            };
+            console.log('🔑 LOGIN PROMPT: Storing pending action:', pendingAction);
+            localStorage.setItem('pending_action', JSON.stringify(pendingAction));
+        } else {
+            console.log('🔑 LOGIN PROMPT: No action or actionData provided:', { action, actionData });
+        }
+        
+        // Remove any existing login prompt
+        const existingPrompt = document.querySelector('.login-prompt-overlay');
+        if (existingPrompt) {
+            existingPrompt.remove();
+        }
+        
+        const loginPrompt = document.createElement('div');
+        loginPrompt.className = 'login-prompt-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        loginPrompt.innerHTML = `
+            <div class="bg-white dark:bg-dark-800 rounded-lg p-8 max-w-md mx-4 text-center shadow-xl">
+                <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Login Required</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-6">${message}</p>
+                <div class="space-y-3">
+                    <a href="/auth/login-page" class="block w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-secondary transition-colors">
+                        Log In
+                    </a>
+                    <a href="/auth/register-page" class="block w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 transition-colors">
+                        Sign Up
+                    </a>
+                    <button onclick="closeLoginPrompt()" class="block w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition-colors">
+                        Continue Browsing
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(loginPrompt);
+    }
+    
+    function closeLoginPrompt() {
+        const loginPrompt = document.querySelector('.login-prompt-overlay');
+        if (loginPrompt) {
+            loginPrompt.remove();
+        }
+    }
+    
+    // Check for pending actions after login
+    function checkPendingActions() {
+        console.log('🔄 CHECK PENDING: Starting check for pending actions');
+        const pendingAction = localStorage.getItem('pending_action');
+        console.log('🔄 CHECK PENDING: Found pending action in localStorage:', pendingAction);
+        
+        if (pendingAction) {
+            try {
+                const action = JSON.parse(pendingAction);
+                const now = Date.now();
+                console.log('🔄 CHECK PENDING: Parsed action:', action);
+                console.log('🔄 CHECK PENDING: Current time:', now, 'Action timestamp:', action.timestamp, 'Age:', now - action.timestamp);
+                
+                // Check if action is still valid (within 5 minutes)
+                if (now - action.timestamp < 300000) {
+                    // Only execute if we're coming from a login page or if it's a fresh login
+                    const referrer = document.referrer;
+                    const isFromLoginPage = referrer.includes('/auth/login-page') || referrer.includes('/auth/register-page');
+                    
+                    console.log('🔄 CHECK PENDING: Referrer:', referrer);
+                    console.log('🔄 CHECK PENDING: Is from login page:', isFromLoginPage);
+                    console.log('🔄 CHECK PENDING: No referrer:', !referrer);
+                    
+                    if (isFromLoginPage || !referrer) {
+                        console.log('🔄 CHECK PENDING: Executing pending action:', action);
+                        executePendingAction(action);
+                    } else {
+                        console.log('🔄 CHECK PENDING: Skipping pending action - not from login page');
+                    }
+                } else {
+                    console.log('🔄 CHECK PENDING: Pending action expired');
+                }
+                
+                // Clear the pending action
+                console.log('🔄 CHECK PENDING: Clearing pending action from localStorage');
+                localStorage.removeItem('pending_action');
+            } catch (error) {
+                console.error('🔄 CHECK PENDING: Error parsing pending action:', error);
+                localStorage.removeItem('pending_action');
+            }
+        } else {
+            console.log('🔄 CHECK PENDING: No pending action found');
+        }
+    }
+    
+    function executePendingAction(action) {
+        console.log('🚀 EXECUTE PENDING: Executing action:', action.action, 'with data:', action.data);
+        switch (action.action) {
+            case 'generate_video':
+                console.log('🚀 EXECUTE PENDING: Handling generate_video action');
+                // Fill the form and submit
+                const promptInput = document.getElementById('prompt');
+                const qualitySelect = document.getElementById('quality');
+                if (promptInput && qualitySelect) {
+                    promptInput.value = action.data.prompt;
+                    qualitySelect.value = action.data.quality;
+                    // Trigger form submission
+                    setTimeout(() => {
+                        document.getElementById('generateForm').dispatchEvent(new Event('submit'));
+                    }, 500);
+                }
+                break;
+            case 'go_to_dashboard':
+                console.log('🚀 EXECUTE PENDING: Redirecting to dashboard');
+                window.location.href = '/dashboard';
+                break;
+            case 'ai_suggest':
+                console.log('🚀 EXECUTE PENDING: Handling ai_suggest action');
+                if (action.data.type === 'improve') {
+                    // Fill prompt and click improve button
+                    const promptInput = document.getElementById('prompt');
+                    if (promptInput) {
+                        promptInput.value = action.data.prompt;
+                        setTimeout(() => {
+                            document.getElementById('improvePromptBtn').click();
+                        }, 500);
+                    }
+                } else if (action.data.type === 'random') {
+                    // Click random button
+                    setTimeout(() => {
+                        document.getElementById('randomPromptBtn').click();
+                    }, 500);
+                }
+                break;
+            default:
+                console.log('🚀 EXECUTE PENDING: Unknown pending action:', action.action);
+        }
+    }
+    
+    // Handle URL parameters for redirect actions
+    function handleUrlActions() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const action = urlParams.get('action');
+        
+        if (action === 'generate_video') {
+            const prompt = urlParams.get('prompt');
+            const quality = urlParams.get('quality');
+            if (prompt) {
+                const promptInput = document.getElementById('prompt');
+                const qualitySelect = document.getElementById('quality');
+                if (promptInput && qualitySelect) {
+                    promptInput.value = prompt;
+                    if (quality) qualitySelect.value = quality;
+                    // Clear URL parameters
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    // Scroll to form
+                    document.getElementById('generateVideoSection').scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+        } else if (action === 'ai_suggest') {
+            const type = urlParams.get('type');
+            const prompt = urlParams.get('prompt');
+            if (type === 'improve' && prompt) {
+                const promptInput = document.getElementById('prompt');
+                if (promptInput) {
+                    promptInput.value = prompt;
+                    // Clear URL parameters
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    // Trigger improve button
+                    setTimeout(() => {
+                        document.getElementById('improvePromptBtn').click();
+                    }, 500);
+                }
+            } else if (type === 'random') {
+                // Clear URL parameters
+                window.history.replaceState({}, document.title, window.location.pathname);
+                // Trigger random button
+                setTimeout(() => {
+                    document.getElementById('randomPromptBtn').click();
+                }, 500);
+            }
+        }
+    }
+    
+    function updateUIForAuthState() {
+        const currentAuthToken = localStorage.getItem('auth_token');
+        const isLoggedIn = !!currentAuthToken;
+        
+        // Update dashboard button text based on login state
+        if (dashboardBtn) {
+            if (isLoggedIn) {
+                dashboardBtn.textContent = 'Go to Dashboard';
+                dashboardBtn.classList.remove('opacity-75');
+            } else {
+                dashboardBtn.textContent = 'Login for Dashboard';
+                dashboardBtn.classList.add('opacity-75');
+            }
+        }
+        
+        // Update form placeholder text based on login state
+        const promptTextarea = document.getElementById('prompt');
+        if (promptTextarea) {
+            if (isLoggedIn) {
+                promptTextarea.placeholder = 'A beautiful sunset over the ocean with gentle waves...';
+            } else {
+                promptTextarea.placeholder = 'Login to generate videos...';
+            }
+        }
+        
+        // Show/hide credit info based on login state
+        const creditInfo = document.getElementById('creditCost');
+        const freeCreditInfo = document.getElementById('freeCreditInfo');
+        if (creditInfo) {
+            if (isLoggedIn) {
+                creditInfo.textContent = 'Cost: 1 credit';
+                if (freeCreditInfo) {
+                    freeCreditInfo.classList.remove('hidden');
+                }
+            } else {
+                creditInfo.textContent = 'Login to see credit cost';
+                if (freeCreditInfo) {
+                    freeCreditInfo.classList.add('hidden');
+                }
+            }
+        }
+        
+        // Update login status indicator
+        const loginStatusText = document.getElementById('loginStatusText');
+        if (loginStatusText) {
+            if (isLoggedIn) {
+                loginStatusText.textContent = 'You\'re logged in! Create videos and join the conversation.';
+            } else {
+                loginStatusText.textContent = 'Welcome! Browse videos or log in to create your own.';
+            }
         }
     }
     
@@ -952,6 +1272,14 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('🗨️ Opening chat for video:', videoId);
         event.preventDefault();
         event.stopPropagation();
+        
+        // Check authentication first
+        const currentAuthToken = localStorage.getItem('auth_token');
+        if (!currentAuthToken) {
+            console.log('❌ CHAT: No auth token - showing login prompt');
+            showLoginPrompt('Please log in to chat about videos.', 'chat_message', { message: '' });
+            return;
+        }
         
         currentChatVideoId = videoId;
         
@@ -1095,9 +1423,9 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="chat-message ${isCurrentUser ? 'own-message' : ''}" data-message-id="${message.id}">
                 <div class="flex ${isCurrentUser ? 'justify-end' : 'justify-start'} items-start space-x-2">
                     ${!isCurrentUser ? `
-                        <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                        <a href="/profile/${message.user.id}" class="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer" title="View ${message.user.email}'s profile">
                             ${message.user.avatar}
-                        </div>
+                        </a>
                     ` : ''}
                     
                     <div class="max-w-xs lg:max-w-md">
@@ -1132,9 +1460,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     
                     ${isCurrentUser ? `
-                        <div class="w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                        <a href="/profile/${message.user.id}" class="w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer" title="View your profile">
                             ${message.user.avatar}
-                        </div>
+                        </a>
                     ` : ''}
                 </div>
             </div>
@@ -1149,9 +1477,9 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="reply ${isCurrentUser ? 'own-reply' : ''}" data-reply-id="${reply.id}">
                 <div class="flex ${isCurrentUser ? 'justify-end' : 'justify-start'} items-start space-x-2">
                     ${!isCurrentUser ? `
-                        <div class="w-6 h-6 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                        <a href="/profile/${reply.user.id}" class="w-6 h-6 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer" title="View ${reply.user.email}'s profile">
                             ${reply.user.avatar}
-                        </div>
+                        </a>
                     ` : ''}
                     
                     <div class="max-w-xs">
@@ -1170,9 +1498,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     
                     ${isCurrentUser ? `
-                        <div class="w-6 h-6 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                        <a href="/profile/${reply.user.id}" class="w-6 h-6 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer" title="View your profile">
                             ${reply.user.avatar}
-                        </div>
+                        </a>
                     ` : ''}
                 </div>
             </div>

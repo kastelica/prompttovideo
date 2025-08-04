@@ -253,13 +253,15 @@
                 <!-- Creator Info -->
                 <div class="flex items-center justify-between pt-4 border-t border-gray-100">
                     <div class="flex items-center">
-                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                            {{ video.user.email[0].upper() }}
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm text-gray-500">Created by</p>
-                            <p class="font-medium text-gray-900">{{ video.user.email }}</p>
-                        </div>
+                        <a href="/profile/{{ video.user.id }}" class="flex items-center hover:opacity-80 transition-opacity">
+                            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                                {{ video.user.get_avatar_text() }}
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-gray-500">Created by</p>
+                                <p class="font-medium text-gray-900">{{ video.user.get_display_name() }}</p>
+                            </div>
+                        </a>
                     </div>
                     
                     <div class="flex items-center space-x-3">
@@ -739,8 +741,29 @@ const currentVideoId = {{ video.id }};
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize chat system
-    initializeWatchChat();
-    loadWatchChatMessages();
+initializeWatchChat();
+loadWatchChatMessages();
+
+// Check for pending actions after login
+checkPendingActions();
+
+// Handle pending chat message if any
+const urlParams = new URLSearchParams(window.location.search);
+const pendingChat = urlParams.get('pending_chat');
+if (pendingChat) {
+    // Clear the URL parameter
+    const newUrl = window.location.pathname + window.location.search.replace(/[?&]pending_chat=[^&]*/, '').replace(/^\?&/, '?').replace(/^\?$/, '');
+    window.history.replaceState({}, document.title, newUrl);
+    
+    // Set the chat input and send the message
+    setTimeout(() => {
+        const chatInput = document.getElementById('watchChatInput');
+        if (chatInput) {
+            chatInput.value = pendingChat;
+            sendWatchChatMessage();
+        }
+    }, 1000);
+}
     
     // Initialize video editing features
     checkVideoOwnership();
@@ -834,7 +857,7 @@ async function loadWatchChatMessages() {
     
     const authToken = localStorage.getItem('auth_token');
     if (!authToken) {
-        showWatchChatError('Please log in to view and participate in the discussion');
+        showWatchChatError('Please log in to view and participate in the discussion', true);
         return;
     }
     
@@ -895,9 +918,9 @@ function renderWatchMessage(message) {
         <div class="watch-chat-message" data-message-id="${message.id}">
             <!-- Main Message -->
             <div class="flex items-start space-x-3 group">
-                <div class="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
+                <a href="/profile/${message.user.id}" class="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer" title="View ${message.user.email}'s profile">
                     ${message.user.avatar}
-                </div>
+                </a>
                 
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center space-x-2 mb-1">
@@ -962,9 +985,9 @@ function renderWatchReply(reply) {
     return `
         <div class="watch-chat-reply" data-reply-id="${reply.id}">
             <div class="flex items-start space-x-3">
-                <div class="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                <a href="/profile/${reply.user.id}" class="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0 hover:opacity-80 transition-opacity cursor-pointer" title="View ${reply.user.email}'s profile">
                     ${reply.user.avatar}
-                </div>
+                </a>
                 
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center space-x-2 mb-1">
@@ -1012,7 +1035,7 @@ async function sendWatchChatMessage() {
     
     const authToken = localStorage.getItem('auth_token');
     if (!authToken) {
-        showWatchChatError('Please log in to send messages');
+        showLoginPrompt('Please log in to send a message about this video.', 'chat_message', { message: content });
         return;
     }
     
@@ -1082,7 +1105,7 @@ async function sendWatchReply(event, messageId) {
     
     const authToken = localStorage.getItem('auth_token');
     if (!authToken) {
-        showWatchChatError('Please log in to send replies');
+        showLoginPrompt('Please log in to reply to this message.', 'chat_message', { message: content });
         return;
     }
     
@@ -1227,16 +1250,51 @@ function scrollWatchChatToBottom() {
     container.scrollTop = container.scrollHeight;
 }
 
-function showWatchChatError(message) {
+function showWatchChatError(message, isLoginRequired = false) {
     const container = document.getElementById('watchChatMessages');
-    container.innerHTML = `
-        <div class="text-center text-red-500 py-8">
-            <svg class="mx-auto w-12 h-12 text-red-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <p>${message}</p>
-        </div>
-    `;
+    
+    if (isLoginRequired) {
+        // Friendly login prompt instead of harsh error
+        container.innerHTML = `
+            <div class="text-center py-8">
+                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-800 max-w-md mx-auto">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Join the Discussion</h3>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">${message}</p>
+                    <div class="space-y-2">
+                        <button onclick="showLoginPrompt('Please log in to join the discussion about this video.')" 
+                                class="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium">
+                            Log In to Comment
+                        </button>
+                        <a href="/auth/register-page" 
+                           class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors text-sm font-medium inline-block text-center">
+                            Create Account
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        // Regular error message (less harsh)
+        container.innerHTML = `
+            <div class="text-center py-8">
+                <div class="bg-gray-50 dark:bg-dark-700 rounded-xl p-6 border border-gray-200 dark:border-dark-600 max-w-md mx-auto">
+                    <svg class="mx-auto w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-gray-600 dark:text-gray-400">${message}</p>
+                    <button onclick="loadWatchChatMessages()" 
+                            class="mt-3 text-blue-500 hover:text-blue-600 text-sm font-medium">
+                        Try Again
+                    </button>
+                </div>
+            </div>
+        `;
+    }
 }
 
 function getWatchCurrentUserId() {
@@ -1267,6 +1325,96 @@ function escapeWatchHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// ===== LOGIN PROMPT AND REDIRECT SYSTEM =====
+function showLoginPrompt(message = 'Please log in to continue.', action = null, actionData = null) {
+    // Store the intended action for after login
+    if (action && actionData) {
+        localStorage.setItem('pending_action', JSON.stringify({
+            action: action,
+            data: actionData,
+            timestamp: Date.now()
+        }));
+    }
+    
+    // Remove any existing login prompt
+    const existingPrompt = document.querySelector('.login-prompt-overlay');
+    if (existingPrompt) {
+        existingPrompt.remove();
+    }
+    
+    const loginPrompt = document.createElement('div');
+    loginPrompt.className = 'login-prompt-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    loginPrompt.innerHTML = `
+        <div class="bg-white dark:bg-dark-800 rounded-lg p-8 max-w-md mx-4 text-center shadow-xl">
+            <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-gray-100">Login Required</h2>
+            <p class="text-gray-600 dark:text-gray-400 mb-6">${message}</p>
+            <div class="space-y-3">
+                <a href="/auth/login-page" class="block w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-secondary transition-colors">
+                    Log In
+                </a>
+                <a href="/auth/register-page" class="block w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 transition-colors">
+                    Sign Up
+                </a>
+                <button onclick="closeLoginPrompt()" class="block w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition-colors">
+                    Continue Browsing
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(loginPrompt);
+}
+
+function closeLoginPrompt() {
+    const loginPrompt = document.querySelector('.login-prompt-overlay');
+    if (loginPrompt) {
+        loginPrompt.remove();
+    }
+}
+
+// Check for pending actions after login
+function checkPendingActions() {
+    const pendingAction = localStorage.getItem('pending_action');
+    if (pendingAction) {
+        try {
+            const action = JSON.parse(pendingAction);
+            const now = Date.now();
+            
+            // Check if action is still valid (within 5 minutes)
+            if (now - action.timestamp < 300000) {
+                console.log('🔄 Executing pending action:', action);
+                executePendingAction(action);
+            }
+            
+            // Clear the pending action
+            localStorage.removeItem('pending_action');
+        } catch (error) {
+            console.error('Error parsing pending action:', error);
+            localStorage.removeItem('pending_action');
+        }
+    }
+}
+
+function executePendingAction(action) {
+    switch (action.action) {
+        case 'generate_video':
+            // Redirect to index page and trigger video generation
+            window.location.href = '/?action=generate_video&prompt=' + encodeURIComponent(action.data.prompt) + '&quality=' + action.data.quality;
+            break;
+        case 'go_to_dashboard':
+            window.location.href = '/dashboard';
+            break;
+        case 'chat_message':
+            // For chat messages, we need to reload the page and then send the message
+            window.location.href = window.location.href + '?pending_chat=' + encodeURIComponent(action.data.message);
+            break;
+        case 'ai_suggest':
+            window.location.href = '/?action=ai_suggest&type=' + action.data.type + '&prompt=' + encodeURIComponent(action.data.prompt || '');
+            break;
+        default:
+            console.log('Unknown pending action:', action.action);
+    }
 }
 
 // Video Editing and Analytics Functions
