@@ -11,21 +11,42 @@ from datetime import datetime
 @bp.route('/')
 def index():
     """Home page with video generation form"""
-    # Get videos that are public, completed, and have GCS URLs (preferred)
-    featured_videos = Video.query.join(User).filter(
+    # Get sorting and filtering parameters
+    sort_by = request.args.get('sort', 'popular')  # popular, newest, oldest
+    quality_filter = request.args.get('quality', 'all')  # all, free, premium
+    
+    # Base query for public, completed videos
+    base_query = Video.query.join(User).filter(
         Video.public == True,
-        Video.status == 'completed',
+        Video.status == 'completed'
+    )
+    
+    # Apply quality filter
+    if quality_filter == 'free':
+        base_query = base_query.filter(Video.quality == 'free')
+    elif quality_filter == 'premium':
+        base_query = base_query.filter(Video.quality == 'premium')
+    
+    # Apply sorting
+    if sort_by == 'newest':
+        videos_query = base_query.order_by(Video.created_at.desc())
+    elif sort_by == 'oldest':
+        videos_query = base_query.order_by(Video.created_at.asc())
+    else:  # popular (default)
+        videos_query = base_query.order_by(Video.views.desc())
+    
+    # Get videos with GCS URLs first (preferred)
+    featured_videos = videos_query.filter(
         Video.gcs_signed_url.isnot(None),
         Video.gcs_signed_url != ''
-    ).order_by(Video.views.desc()).limit(9).all()
+    ).limit(9).all()
     
     # If we don't have enough videos with GCS URLs, add some without
     if len(featured_videos) < 6:
-        additional_videos = Video.query.join(User).filter(
-            Video.public == True,
-            Video.status == 'completed',
+        additional_query = videos_query.filter(
             Video.gcs_signed_url.is_(None)
-        ).order_by(Video.views.desc()).limit(6 - len(featured_videos)).all()
+        ).limit(6 - len(featured_videos))
+        additional_videos = additional_query.all()
         featured_videos.extend(additional_videos)
     
     # Limit to 9 total videos
@@ -35,7 +56,9 @@ def index():
     
     return render_template('main/index.html', 
                          featured_videos=featured_videos,
-                         prompt_packs=prompt_packs)
+                         prompt_packs=prompt_packs,
+                         current_sort=sort_by,
+                         current_quality=quality_filter)
 
 @bp.route('/prompt-packs')
 def prompt_packs():

@@ -169,7 +169,58 @@
 <!-- Featured Videos -->
 {% if featured_videos %}
 <div class="bg-white dark:bg-dark-800 rounded-lg shadow-md p-4 md:p-6 mb-6 md:mb-8 mx-4 md:mx-0">
-    <h2 class="text-xl md:text-2xl font-semibold mb-4 md:mb-6 text-gray-900 dark:text-gray-100">Featured Videos</h2>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 md:mb-6">
+        <h2 class="text-xl md:text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4 sm:mb-0">
+            {% if current_sort == 'newest' %}
+                Latest Videos
+            {% elif current_sort == 'oldest' %}
+                Oldest Videos
+            {% else %}
+                Most Viewed Videos
+            {% endif %}
+        </h2>
+        
+        <!-- Sorting and Filtering Controls -->
+        <div class="flex flex-wrap gap-2">
+            <!-- Sort Options -->
+            <div class="flex items-center space-x-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
+                <button 
+                    onclick="updateVideoSort('popular')" 
+                    class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {% if current_sort == 'popular' %}bg-white dark:bg-dark-600 text-gray-900 dark:text-gray-100 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100{% endif %}">
+                    Most Popular
+                </button>
+                <button 
+                    onclick="updateVideoSort('newest')" 
+                    class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {% if current_sort == 'newest' %}bg-white dark:bg-dark-600 text-gray-900 dark:text-gray-100 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100{% endif %}">
+                    Newest
+                </button>
+                <button 
+                    onclick="updateVideoSort('oldest')" 
+                    class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {% if current_sort == 'oldest' %}bg-white dark:bg-dark-600 text-gray-900 dark:text-gray-100 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100{% endif %}">
+                    Oldest
+                </button>
+            </div>
+            
+            <!-- Quality Filter -->
+            <div class="flex items-center space-x-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
+                <button 
+                    onclick="updateVideoQuality('all')" 
+                    class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {% if current_quality == 'all' %}bg-white dark:bg-dark-600 text-gray-900 dark:text-gray-100 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100{% endif %}">
+                    All
+                </button>
+                <button 
+                    onclick="updateVideoQuality('free')" 
+                    class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {% if current_quality == 'free' %}bg-white dark:bg-dark-600 text-gray-900 dark:text-gray-100 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100{% endif %}">
+                    Free
+                </button>
+                <button 
+                    onclick="updateVideoQuality('premium')" 
+                    class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors {% if current_quality == 'premium' %}bg-white dark:bg-dark-600 text-gray-900 dark:text-gray-100 shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100{% endif %}">
+                    Premium
+                </button>
+            </div>
+        </div>
+    </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {% for video in featured_videos %}
         <div class="border border-gray-200 dark:border-dark-700 rounded-lg overflow-hidden hover:shadow-lg transition-shadow bg-white dark:bg-dark-700" data-video-id="{{ video.id }}" data-video-prompt="{{ video.prompt }}" data-video-date="{{ video.created_at.strftime('%B %d, %Y') }}">
@@ -1791,6 +1842,33 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update every 3 seconds
             setInterval(updateAdjective, 3000);
         }, 2000); // Start after 2 seconds
+    }
+    
+    // ===== VIDEO SORTING AND FILTERING =====
+    function updateVideoSort(sortBy) {
+        const currentUrl = new URL(window.location);
+        currentUrl.searchParams.set('sort', sortBy);
+        
+        // Preserve quality filter if it exists
+        const qualityFilter = currentUrl.searchParams.get('quality');
+        if (qualityFilter) {
+            currentUrl.searchParams.set('quality', qualityFilter);
+        }
+        
+        window.location.href = currentUrl.toString();
+    }
+    
+    function updateVideoQuality(quality) {
+        const currentUrl = new URL(window.location);
+        currentUrl.searchParams.set('quality', quality);
+        
+        // Preserve sort filter if it exists
+        const sortFilter = currentUrl.searchParams.get('sort');
+        if (sortFilter) {
+            currentUrl.searchParams.set('sort', sortFilter);
+        }
+        
+        window.location.href = currentUrl.toString();
     }
 </script>
 {% endblock %} 
