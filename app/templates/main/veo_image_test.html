@@ -136,21 +136,32 @@
                         ></textarea>
                     </div>
 
-                    <div class="mt-4 space-y-3">
-                        <div class="flex items-center">
-                            <input id="enhancePrompt" name="enhancePrompt" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-                            <label for="enhancePrompt" class="ml-2 block text-sm text-gray-900">
-                                Enhance prompt automatically
-                            </label>
-                        </div>
-                        
-                        <div class="flex items-center">
-                            <input id="generateAudio" name="generateAudio" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-                            <label for="generateAudio" class="ml-2 block text-sm text-gray-900">
-                                Generate audio
-                            </label>
-                        </div>
-                    </div>
+                                         <div class="mt-4 space-y-3">
+                         <div class="flex items-center">
+                             <input id="enhancePrompt" name="enhancePrompt" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                             <label for="enhancePrompt" class="ml-2 block text-sm text-gray-900">
+                                 Enhance prompt automatically
+                             </label>
+                         </div>
+                         
+                         <div class="flex items-center">
+                             <input id="generateAudio" name="generateAudio" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                             <label for="generateAudio" class="ml-2 block text-sm text-gray-900">
+                                 Generate audio
+                             </label>
+                         </div>
+                     </div>
+
+                     <div class="mt-4">
+                         <label for="personGeneration" class="block text-sm font-medium text-gray-700 mb-2">
+                             Person/Face Generation
+                         </label>
+                         <select id="personGeneration" name="personGeneration" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
+                             <option value="allow_adult" selected>Allow adults only (default)</option>
+                             <option value="dont_allow">Disallow people/faces</option>
+                         </select>
+                         <p class="mt-1 text-xs text-gray-500">Choose "Disallow people/faces" to avoid content policy violations</p>
+                     </div>
                 </div>
 
                 <!-- Submit Button -->
@@ -244,18 +255,19 @@ document.addEventListener('DOMContentLoaded', function() {
         resultsSection.classList.add('hidden');
 
         try {
-            // Create the request payload
-            const payload = {
-                text_prompt: formData.get('textPrompt'),
-                model_id: formData.get('modelId'),
-                duration: parseInt(formData.get('duration')),
-                sample_count: parseInt(formData.get('sampleCount')),
-                aspect_ratio: formData.get('aspectRatio'),
-                resolution: formData.get('resolution'),
-                negative_prompt: formData.get('negativePrompt') || null,
-                enhance_prompt: formData.get('enhancePrompt') === 'on',
-                generate_audio: formData.get('generateAudio') === 'on'
-            };
+                         // Create the request payload
+             const payload = {
+                 text_prompt: formData.get('textPrompt'),
+                 model_id: formData.get('modelId'),
+                 duration: parseInt(formData.get('duration')),
+                 sample_count: parseInt(formData.get('sampleCount')),
+                 aspect_ratio: formData.get('aspectRatio'),
+                 resolution: formData.get('resolution'),
+                 negative_prompt: formData.get('negativePrompt') || null,
+                 enhance_prompt: formData.get('enhancePrompt') === 'on',
+                 generate_audio: formData.get('generateAudio') === 'on',
+                 person_generation: formData.get('personGeneration')
+             };
 
             // Convert image to base64
             const base64Image = await fileToBase64(file);
@@ -383,12 +395,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <li>Potentially sensitive or inappropriate content</li>
                                     <li>Content that could be misused</li>
                                 </ul>
-                                <p><strong>Try:</strong></p>
-                                <ul class="list-disc list-inside ml-2 space-y-1">
-                                    <li>Use an image without people or faces</li>
-                                    <li>Try a different image with simpler content</li>
-                                    <li>Use landscapes, objects, or abstract images</li>
-                                </ul>
+                                                                 <p><strong>Try:</strong></p>
+                                 <ul class="list-disc list-inside ml-2 space-y-1">
+                                     <li>Set "Person/Face Generation" to "Disallow people/faces" above</li>
+                                     <li>Use an image without people or faces</li>
+                                     <li>Try a different image with simpler content</li>
+                                     <li>Use landscapes, objects, or abstract images</li>
+                                 </ul>
                             </div>
                         </div>
                     </div>

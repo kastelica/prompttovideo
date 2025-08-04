@@ -1492,6 +1492,7 @@ def api_veo_image_to_video():
         negative_prompt = data.get('negative_prompt')
         enhance_prompt = data.get('enhance_prompt', False)
         generate_audio = data.get('generate_audio', False)
+        person_generation = data.get('person_generation', 'allow_adult')
         
         # Validate parameters
         if model_id not in ['veo-2.0-generate-001', 'veo-3.0-generate-preview']:
@@ -1505,6 +1506,9 @@ def api_veo_image_to_video():
         
         if aspect_ratio not in ['16:9', '9:16', '1:1']:
             return jsonify({'error': 'Invalid aspect ratio'}), 400
+        
+        if person_generation not in ['allow_adult', 'dont_allow']:
+            return jsonify({'error': 'Invalid person generation setting'}), 400
         
         # Import VEO client
         from app.veo_client import VeoClient
@@ -1527,7 +1531,8 @@ def api_veo_image_to_video():
             'durationSeconds': duration,
             'aspectRatio': aspect_ratio,
             'enhancePrompt': enhance_prompt,
-            'generateAudio': generate_audio
+            'generateAudio': generate_audio,
+            'personGeneration': person_generation
         }
         
         # Add optional parameters
@@ -1544,6 +1549,7 @@ def api_veo_image_to_video():
         current_app.logger.info(f"🤖 Model: {model_id}")
         current_app.logger.info(f"⏱️ Duration: {duration}s")
         current_app.logger.info(f"🎯 Sample count: {sample_count}")
+        current_app.logger.info(f"👤 Person generation: {person_generation}")
         
         operation_name = veo_client.generate_image_to_video(instances, parameters)
         
