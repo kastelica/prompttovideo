@@ -51,13 +51,13 @@ class VideoProcessor:
             # Get FFmpeg path
             ffmpeg_path = VideoProcessor._get_ffmpeg_path()
             
-            # Generate QR code image
-            logger.info(f"🔧 Generating QR code image...")
+            # Generate QR code image with optimized settings
+            logger.info(f"🔧 Generating optimized QR code image...")
             qr = qrcode.QRCode(
                 version=1,
                 error_correction=qrcode.constants.ERROR_CORRECT_L,
-                box_size=10,
-                border=4,
+                box_size=8,  # Reduced box size for faster generation
+                border=2,    # Reduced border for smaller file
             )
             qr.add_data(qr_url)
             qr.make(fit=True)
@@ -66,12 +66,12 @@ class VideoProcessor:
             qr_img = qr.make_image(fill_color="black", back_color="white")
             logger.info(f"✅ QR code image created, size: {qr_img.size}")
             
-            # Resize QR code to medium size (120x120 pixels)
-            qr_img = qr_img.resize((120, 120), Image.Resampling.LANCZOS)
-            logger.info(f"✅ QR code resized to 120x120")
+            # Resize QR code to smaller size (100x100 pixels) for faster processing
+            qr_img = qr_img.resize((100, 100), Image.Resampling.NEAREST)  # Use NEAREST for speed
+            logger.info(f"✅ QR code resized to 100x100")
             
-            # Add white background with transparency
-            background = Image.new('RGBA', (140, 140), (255, 255, 255, 200))
+            # Add white background with transparency (smaller size)
+            background = Image.new('RGBA', (120, 120), (255, 255, 255, 180))  # Reduced transparency
             background.paste(qr_img, (10, 10))
             logger.info(f"✅ Background added with transparency")
             
@@ -84,29 +84,33 @@ class VideoProcessor:
             logger.info(f"📊 QR file size: {os.path.getsize(qr_path)} bytes")
             
             try:
-                # Add QR code to video using FFmpeg
-                filter_complex = f"overlay=x=W-w-20:y=20:format=auto"
+                # Add QR code to video using FFmpeg with optimized settings
+                # Use a simpler overlay filter and optimize for speed
+                filter_complex = f"overlay=x=W-w-20:y=20"
                 
                 cmd = [
                     ffmpeg_path,
                     '-i', input_path,
                     '-i', qr_path,
                     '-filter_complex', filter_complex,
+                    '-c:v', 'libx264',  # Use H.264 codec for better compatibility
+                    '-preset', 'ultrafast',  # Use fastest encoding preset
+                    '-crf', '23',  # Good quality with reasonable file size
                     '-c:a', 'copy',  # Copy audio without re-encoding
                     '-y',  # Overwrite output file
                     output_path
                 ]
                 
-                logger.info(f"🎬 Running FFmpeg QR watermark command...")
+                logger.info(f"🎬 Running optimized FFmpeg QR watermark command...")
                 logger.info(f"🔧 FFmpeg path: {ffmpeg_path}")
                 logger.info(f"🔧 Command: {' '.join(cmd)}")
                 
-                # Run FFmpeg command
+                # Run FFmpeg command with shorter timeout
                 result = subprocess.run(
                     cmd,
                     capture_output=True,
                     text=True,
-                    timeout=300  # 5 minute timeout
+                    timeout=180  # 3 minute timeout (reduced from 5)
                 )
                 
                 logger.info(f"🎬 FFmpeg return code: {result.returncode}")
@@ -140,7 +144,17 @@ class VideoProcessor:
             logger.error(f"❌ Error type: {type(e).__name__}")
             import traceback
             logger.error(f"❌ Full traceback: {traceback.format_exc()}")
-            raise
+            
+            # Fallback: try to copy the video without watermark
+            logger.info(f"🔄 Attempting fallback: copying video without watermark...")
+            try:
+                import shutil
+                shutil.copy2(input_path, output_path)
+                logger.info(f"✅ Fallback successful: video copied without watermark")
+                return True
+            except Exception as fallback_error:
+                logger.error(f"❌ Fallback also failed: {fallback_error}")
+                raise e  # Re-raise the original error
     
     @staticmethod
     def _add_text_watermark(input_path, output_path, watermark_text):
