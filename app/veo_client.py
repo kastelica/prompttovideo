@@ -435,8 +435,8 @@ class VeoClient:
                                 if video_url:
                                     # Convert GCS URL to signed URL for direct access
                                     try:
-                                        from app.gcs_utils import get_signed_url
-                                        signed_url = get_signed_url(video_url, expiration=3600)  # 1 hour
+                                        from app.gcs_utils import generate_signed_url
+                                        signed_url = generate_signed_url(video_url, duration_days=1)  # 1 day
                                         videos.append({
                                             'index': i,
                                             'url': signed_url,
@@ -469,8 +469,8 @@ class VeoClient:
                         
                         if check_gcs_file_exists(expected_gcs_url):
                             try:
-                                from app.gcs_utils import get_signed_url
-                                signed_url = get_signed_url(expected_gcs_url, expiration=3600)
+                                from app.gcs_utils import generate_signed_url
+                                signed_url = generate_signed_url(expected_gcs_url, duration_days=1)
                                 videos.append({
                                     'index': i,
                                     'url': signed_url,
