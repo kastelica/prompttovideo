@@ -36,10 +36,13 @@
                             <p class="text-xs text-gray-500">PNG, JPG up to 10MB</p>
                         </div>
                     </div>
-                    <div id="imagePreview" class="mt-4 hidden">
-                        <img id="previewImg" class="max-w-xs rounded-lg shadow-md" alt="Preview">
-                    </div>
-                </div>
+                                         <div id="imagePreview" class="mt-4 hidden">
+                         <img id="previewImg" class="max-w-xs rounded-lg shadow-md" alt="Preview">
+                     </div>
+                     <div class="mt-2 text-xs text-gray-500">
+                         <p><strong>Note:</strong> VEO has strict content policies. Avoid images with people, faces, or potentially sensitive content. Landscapes, objects, and abstract images work best.</p>
+                     </div>
+                 </div>
 
                 <!-- Text Prompt -->
                 <div>
@@ -358,6 +361,42 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
     }
 
+    function displayContentViolationError(result) {
+        resultsSection.classList.remove('hidden');
+        statusMessage.innerHTML = `
+            <div class="bg-orange-50 border border-orange-200 rounded-md p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-orange-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-orange-800">Content Policy Violation</h3>
+                        <div class="mt-2 text-sm text-orange-700">
+                            <p class="font-medium">${result.details || 'Content blocked by safety settings'}</p>
+                            <div class="mt-3 space-y-2">
+                                <p><strong>What happened:</strong> The image contains content that violates VEO's safety settings.</p>
+                                <p><strong>Common causes:</strong></p>
+                                <ul class="list-disc list-inside ml-2 space-y-1">
+                                    <li>Images with people or faces</li>
+                                    <li>Potentially sensitive or inappropriate content</li>
+                                    <li>Content that could be misused</li>
+                                </ul>
+                                <p><strong>Try:</strong></p>
+                                <ul class="list-disc list-inside ml-2 space-y-1">
+                                    <li>Use an image without people or faces</li>
+                                    <li>Try a different image with simpler content</li>
+                                    <li>Use landscapes, objects, or abstract images</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
     function displayVideos(videos) {
         console.log('Displaying videos:', videos); // Debug logging
         videoResults.innerHTML = '';
@@ -412,6 +451,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         console.log('VEO operation done, videos:', result.videos); // Debug logging
                         if (result.videos) {
                             displayVideos(result.videos);
+                        } else if (result.status === 'content_violation') {
+                            displayContentViolationError(result);
                         } else {
                             displayError('Video generation completed but no videos were returned');
                         }
