@@ -106,6 +106,70 @@ def api_get_video(video_id):
         'completed_at': video.completed_at.isoformat() if video.completed_at else None
     })
 
+@bp.route('/videos/<int:video_id>/share', methods=['POST'])
+@login_required
+def api_share_video(video_id):
+    """Share a video (make public or create share link)"""
+    video = Video.query.filter_by(id=video_id, user_id=request.user_id).first()
+    
+    if not video:
+        return jsonify({'error': 'Video not found'}), 404
+    
+    if video.status != 'completed':
+        return jsonify({'error': 'Only completed videos can be shared'}), 400
+    
+    data = request.get_json()
+    share_type = data.get('type', 'public')
+    
+    try:
+        if share_type == 'public':
+            video.public = True
+            message = 'Video made public successfully'
+        elif share_type == 'private':
+            # Generate share token for private sharing
+            import secrets
+            video.share_token = secrets.token_urlsafe(16)
+            message = 'Private share link created successfully'
+        else:
+            return jsonify({'error': 'Invalid share type'}), 400
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': message,
+            'share_url': video.get_share_url() if video.share_token else None
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error sharing video: {str(e)}")
+        return jsonify({'error': 'Failed to share video'}), 500
+
+@bp.route('/videos/<int:video_id>/unshare', methods=['POST'])
+@login_required
+def api_unshare_video(video_id):
+    """Unshare a video (make private)"""
+    video = Video.query.filter_by(id=video_id, user_id=request.user_id).first()
+    
+    if not video:
+        return jsonify({'error': 'Video not found'}), 404
+    
+    try:
+        video.public = False
+        video.share_token = None  # Remove share token
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Video made private successfully'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error unsharing video: {str(e)}")
+        return jsonify({'error': 'Failed to unshare video'}), 500
+
 @bp.route('/v1/videos', methods=['GET'])
 @login_required
 def api_list_videos():
