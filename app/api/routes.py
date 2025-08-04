@@ -636,7 +636,8 @@ def api_search():
         
         # Commit any slug changes
         db.session.commit()
-            
+        
+        for video in all_videos:
             # Get user profile safely
             user_profile = get_user_profile(video.user)
             
