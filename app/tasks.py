@@ -67,7 +67,15 @@ def _generate_video_task(video_id):
         # Step 1: Call Veo API using the new VeoClient
         print(f"📋 Step 1/6: Calling Veo API via VeoClient...")
         veo_client = VeoClient()
-        result = veo_client.generate_video(video.prompt, video.quality)
+        
+        # Determine appropriate duration based on quality
+        if video.quality in ['premium', '1080p']:
+            duration = 30  # Premium tier supports longer videos
+        else:
+            duration = 8   # Free tier limited to 8 seconds
+        
+        print(f"🎬 Generating {duration}s video with {video.quality} quality")
+        result = veo_client.generate_video(video.prompt, video.quality, duration)
         
         if not result.get('success'):
             error_msg = result.get('error', 'Failed to start video generation')

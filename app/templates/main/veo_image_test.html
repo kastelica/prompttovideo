@@ -77,15 +77,16 @@
                     </label>
                     <select id="duration" name="duration" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md">
                         <option value="5">5 seconds</option>
-                        <option value="8" selected>8 seconds</option>
-                        <option value="10">10 seconds</option>
-                        <option value="15">15 seconds</option>
-                        <option value="20">20 seconds</option>
-                        <option value="30">30 seconds</option>
-                        <option value="40">40 seconds</option>
-                        <option value="50">50 seconds</option>
-                        <option value="60">60 seconds</option>
+                        <option value="8" selected>8 seconds (Free tier max)</option>
+                        <option value="10" disabled>10 seconds (Premium only)</option>
+                        <option value="15" disabled>15 seconds (Premium only)</option>
+                        <option value="20" disabled>20 seconds (Premium only)</option>
+                        <option value="30" disabled>30 seconds (Premium only)</option>
+                        <option value="40" disabled>40 seconds (Premium only)</option>
+                        <option value="50" disabled>50 seconds (Premium only)</option>
+                        <option value="60" disabled>60 seconds (Premium only)</option>
                     </select>
+                    <p id="duration-help" class="mt-1 text-xs text-gray-500">Free tier supports up to 8 seconds. Upgrade to premium for longer videos.</p>
                 </div>
 
                 <!-- Sample Count -->
@@ -241,6 +242,45 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Handle model selection changes
+    const modelSelect = document.getElementById('modelId');
+    const durationSelect = document.getElementById('duration');
+    const durationHelp = document.getElementById('duration-help');
+    
+    function updateDurationOptions() {
+        const selectedModel = modelSelect.value;
+        const isPremium = selectedModel === 'veo-3.0-generate-preview';
+        
+        // Reset all options
+        Array.from(durationSelect.options).forEach(option => {
+            option.disabled = false;
+        });
+        
+        if (isPremium) {
+            // Enable all options for premium
+            durationHelp.textContent = 'Premium tier supports videos up to 60 seconds.';
+            // Set default to 30 seconds for premium
+            durationSelect.value = '30';
+        } else {
+            // Disable options beyond 8 seconds for free tier
+            Array.from(durationSelect.options).forEach(option => {
+                const value = parseInt(option.value);
+                if (value > 8) {
+                    option.disabled = true;
+                }
+            });
+            durationHelp.textContent = 'Free tier supports up to 8 seconds. Upgrade to premium for longer videos.';
+            // Set default to 8 seconds for free tier
+            durationSelect.value = '8';
+        }
+    }
+    
+    // Initialize duration options
+    updateDurationOptions();
+    
+    // Update duration options when model changes
+    modelSelect.addEventListener('change', updateDurationOptions);
+    
     // Form submission
     form.addEventListener('submit', async function(e) {
         e.preventDefault();

@@ -181,7 +181,7 @@ class VeoClient:
             logger.error(f"❌ VEO: Traceback: {traceback.format_exc()}")
             return None
     
-    def generate_video(self, prompt, quality='free', duration=30):
+    def generate_video(self, prompt, quality='free', duration=8):
         """Generate video using Veo API."""
         if quality == 'premium':
             self.model_id = 'veo-3.0-generate-001'
@@ -192,7 +192,16 @@ class VeoClient:
             max_duration = 8
             has_audio = False
 
+        # Ensure duration is within limits for the quality tier
+        if quality == 'free' and duration > 8:
+            logger.warning(f"⚠️ VEO: Requested duration {duration}s exceeds free tier limit (8s). Using 8s.")
+            duration = 8
+        elif quality == 'premium' and duration > 60:
+            logger.warning(f"⚠️ VEO: Requested duration {duration}s exceeds premium tier limit (60s). Using 60s.")
+            duration = 60
+
         logger.warning("💰 VEO: Real Veo API call will be made. This may incur costs.")
+        logger.info(f"🎬 VEO: Generating {duration}s video with {quality} quality using {self.model_id}")
         
         token = self._get_auth_token()
         if not token:
@@ -208,7 +217,7 @@ class VeoClient:
         request_data = {
             "instances": [{"prompt": prompt}],
             "parameters": {
-                "durationSeconds": min(max(duration, 5), max_duration),
+                "durationSeconds": duration,
                 "aspectRatio": "16:9",
                 "enhancePrompt": True,
                 "sampleCount": 1,
@@ -238,6 +247,18 @@ class VeoClient:
                     return {'success': False, 'error': "No operation name in response"}
             else:
                 error_msg = f"API request failed: {response.status_code} - {response.text}"
+                
+                # Provide more helpful error messages for common issues
+                if 'Unsupported output video duration' in response.text:
+                    if quality == 'free':
+                        error_msg = f"Free tier only supports videos up to 8 seconds. You requested {duration}s. Upgrade to premium for longer videos."
+                    else:
+                        error_msg = f"Premium tier supports videos up to 60 seconds. You requested {duration}s."
+                elif 'insufficient quota' in response.text.lower():
+                    error_msg = "Veo API quota exceeded. Please try again later or upgrade your plan."
+                elif 'authentication' in response.text.lower():
+                    error_msg = "Authentication failed. Please check your Google Cloud credentials."
+                
                 logger.error(f"❌ VEO: {error_msg}")
                 return {'success': False, 'error': error_msg}
                 
