@@ -545,14 +545,21 @@
                 {% for related_video in related_videos %}
                 <a href="{{ url_for('main.watch_video', video_id=related_video.id, slug=related_video.slug or related_video.generate_slug()) }}" 
                    class="block hover:shadow-md transition-shadow rounded-lg overflow-hidden group">
-                    <div class="aspect-video bg-gray-200 relative">
+                    <div class="aspect-video bg-gray-200 relative overflow-hidden">
                         {% if related_video.status == 'completed' and related_video.gcs_signed_url %}
                             {% if related_video.get_thumbnail_url() %}
-                                <!-- Show thumbnail if available -->
-                                <img src="{{ related_video.get_thumbnail_url() }}" alt="{{ related_video.get_seo_title() }}" class="w-full h-full object-cover">
+                                <!-- Show thumbnail if available - same approach as index.html and dashboard.html -->
+                                <img src="{{ related_video.get_thumbnail_url() }}" 
+                                     alt="{{ related_video.get_seo_title() }}" 
+                                     class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                                     loading="lazy"
+                                     style="display: block !important; visibility: visible !important; opacity: 1 !important; max-width: 100%; height: auto;">
                             {% else %}
                                 <!-- Show video preview if no thumbnail -->
-                                <video class="w-full h-full object-cover" preload="metadata" muted>
+                                <video class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105" 
+                                       preload="metadata" 
+                                       muted
+                                       loading="lazy">
                                     <source src="{{ related_video.gcs_signed_url }}" type="video/mp4">
                                 </video>
                             {% endif %}
@@ -565,14 +572,14 @@
                             </div>
                         {% endif %}
                         
-                        <!-- Play Button Overlay -->
-                        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
-                            <div class="bg-white bg-opacity-90 rounded-full p-3 transform scale-75 group-hover:scale-100 transition-transform duration-200">
-                                <svg class="w-6 h-6 text-gray-800 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                        <!-- Play Button Overlay (temporarily removed to fix thumbnails - same as index.html and dashboard.html) -->
+                        <!-- <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center pointer-events-none">
+                            <div class="bg-white bg-opacity-95 rounded-full p-2 transform scale-75 group-hover:scale-100 transition-transform duration-200 shadow-lg">
+                                <svg class="w-5 h-5 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                                     <path d="M8 5v14l11-7z"/>
                                 </svg>
                             </div>
-                        </div>
+                        </div> -->
                         
                         <!-- Duration Badge (if available) -->
                         {% if related_video.duration %}
