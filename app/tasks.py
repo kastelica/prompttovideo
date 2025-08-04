@@ -120,7 +120,7 @@ def _generate_video_task(video_id):
             return False
         
         # Step 3: Process video data (download from GCS)
-        print(f"📋 Step 3/6: Downloading video from GCS...")
+        print(f"📋 Step 3/7: Downloading video from GCS...")
         local_path = download_video_from_gcs(video_url)
         if not local_path:
             print(f"❌ Failed to download video from GCS")
@@ -130,8 +130,44 @@ def _generate_video_task(video_id):
             return False
         print(f"✅ Video downloaded from GCS to: {local_path}")
         
-        # Step 4: Upload to GCS with organized naming
-        print(f"📋 Step 4/6: Re-uploading to organized path in GCS...")
+        # Step 4: Add QR code watermark
+        print(f"📋 Step 4/7: Adding QR code watermark...")
+        try:
+            from app.video_processor import VideoProcessor
+            import tempfile
+            
+            # Create QR code URL for the video
+            qr_url = f"https://slopvids.com/watch/{video_id}-{video.slug}" if video.slug else f"https://slopvids.com/watch/{video_id}"
+            
+            # Create temporary file for watermarked video
+            with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as temp_watermarked:
+                watermarked_path = temp_watermarked.name
+            
+            print(f"🎯 Adding QR code watermark with URL: {qr_url}")
+            watermark_success = VideoProcessor.add_watermark(
+                input_path=local_path,
+                output_path=watermarked_path,
+                qr_url=qr_url
+            )
+            
+            if watermark_success:
+                print(f"✅ QR code watermark added successfully")
+                # Use the watermarked video for upload
+                video_to_upload = watermarked_path
+                # Clean up original local file
+                os.unlink(local_path)
+                local_path = None
+            else:
+                print(f"⚠️ Failed to add QR code watermark, using original video")
+                video_to_upload = local_path
+                
+        except Exception as e:
+            print(f"⚠️ Error adding QR code watermark: {e}")
+            print(f"⚠️ Using original video without watermark")
+            video_to_upload = local_path
+        
+        # Step 5: Upload to GCS with organized naming
+        print(f"📋 Step 5/7: Re-uploading to organized path in GCS...")
         gcs_path, filename, organized_gcs_url = generate_video_filename(
             video_id=video_id,
             quality=video.quality,
@@ -140,7 +176,7 @@ def _generate_video_task(video_id):
         )
         
         print(f"📁 Using organized path: {gcs_path}")
-        final_gcs_url = upload_file_to_gcs(local_path, gcs_path)
+        final_gcs_url = upload_file_to_gcs(video_to_upload, gcs_path)
         if not final_gcs_url:
             print(f"❌ Failed to upload to GCS")
             video.status = 'failed'
@@ -160,8 +196,8 @@ def _generate_video_task(video_id):
         else:
             print(f"⚠️ Failed to generate signed URL")
         
-        # Step 5: Clean up original Veo API file
-        print(f"📋 Step 5/6: Cleaning up original Veo API file...")
+        # Step 6: Clean up original Veo API file
+        print(f"📋 Step 6/7: Cleaning up original Veo API file...")
         try:
             from app.gcs_utils import delete_gcs_file
             if video_url and video_url != final_gcs_url:
@@ -173,8 +209,8 @@ def _generate_video_task(video_id):
         except Exception as e:
             print(f"⚠️ Failed to clean up original file: {e}")
         
-        # Step 6: Generate thumbnail
-        print(f"📋 Step 6/7: Generating thumbnail...")
+        # Step 7: Generate thumbnail
+        print(f"📋 Step 7/8: Generating thumbnail...")
         try:
             thumbnail_url = generate_video_thumbnail_from_gcs(final_gcs_url, video_id, video.quality, video.prompt)
             if thumbnail_url:
@@ -198,8 +234,8 @@ def _generate_video_task(video_id):
             video.thumbnail_url = f"https://via.placeholder.com/320x180/000000/FFFFFF?text=Video+{video_id}"
             print(f"✅ Set fallback placeholder thumbnail: {video.thumbnail_url}")
         
-        # Step 7: Update video status
-        print(f"📋 Step 7/7: Finalizing video...")
+        # Step 8: Update video status
+        print(f"📋 Step 8/8: Finalizing video...")
         video.status = 'completed'
         video.completed_at = datetime.utcnow()
         video.processing_duration = (video.completed_at - video.processing_started_at).total_seconds()
@@ -213,6 +249,17 @@ def _generate_video_task(video_id):
             print(f"📧 Completion email sent to {user.email}")
         except Exception as e:
             print(f"⚠️ Failed to send completion email: {e}")
+        
+        # Clean up temporary files
+        try:
+            if local_path and os.path.exists(local_path):
+                os.unlink(local_path)
+                print(f"🧹 Cleaned up original local video file")
+            if 'watermarked_path' in locals() and watermarked_path and os.path.exists(watermarked_path):
+                os.unlink(watermarked_path)
+                print(f"🧹 Cleaned up watermarked video file")
+        except Exception as e:
+            print(f"⚠️ Failed to clean up temporary files: {e}")
         
         return True
         

@@ -146,6 +146,9 @@ class VideoProcessor:
     def _add_text_watermark(input_path, output_path, watermark_text):
         """Add text watermark to video (fallback method)"""
         try:
+            # Get FFmpeg path
+            ffmpeg_path = VideoProcessor._get_ffmpeg_path()
+            
             # Simple watermark using colored rectangles instead of text
             # This avoids font configuration issues on Windows
             filter_complex = (
